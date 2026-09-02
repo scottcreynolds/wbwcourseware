@@ -5,6 +5,8 @@ import { courseService } from '@/features/courses/courseService'
 import { parseCourseOutline } from '@/features/courses/outlineParser'
 import { slugify } from '@/features/courses/slug'
 import type { CourseItem, CourseModule, CourseStatus, CourseWorkspace, CurriculumItemKind } from '@/types/course'
+import { cohortService } from '@/features/cohorts/cohortService'
+import type { Cohort } from '@/types/cohort'
 
 const route = useRoute()
 const router = useRouter()
@@ -31,6 +33,8 @@ const outlineSource = ref(`# Module: Foundations
 ## Lecture: What a Scene Does
 ## Assignment: Scene Analysis`)
 const outlineResult = computed(() => parseCourseOutline(outlineSource.value))
+const cohorts=ref<Cohort[]>([])
+const cohortDialog=ref(false),cohortTitle=ref(''),cohortStart=ref(''),cohortEnd=ref(''),cohortTimezone=ref('America/New_York')
 
 function itemById(id: string): CourseItem | undefined {
   return workspace.value?.items.find((item) => item.id === id)
@@ -55,6 +59,7 @@ async function load(): Promise<void> {
   errorMessage.value = null
   try {
     workspace.value = await courseService.loadWorkspace(courseId)
+    cohorts.value = await cohortService.listForCourse(courseId)
   } catch {
     errorMessage.value = 'Course could not be loaded or you do not have access.'
   } finally {
@@ -164,6 +169,8 @@ async function importOutline(): Promise<void> {
   outlineDialog.value = false
 }
 
+async function createCohort():Promise<void>{if(!cohortTitle.value||!cohortStart.value||!cohortEnd.value)return;let newId='';await run(async()=>{newId=await cohortService.createFromCourse({courseId,title:cohortTitle.value,startDate:cohortStart.value,endDate:cohortEnd.value,timezone:cohortTimezone.value})},'Cohort created.');cohortDialog.value=false;if(newId)await router.push(`/teacher/cohorts/${newId}`)}
+
 onMounted(load)
 </script>
 
@@ -171,6 +178,7 @@ onMounted(load)
   <v-alert v-if="errorMessage" type="error" class="mb-4" role="alert">{{ errorMessage }}</v-alert>
   <v-skeleton-loader v-if="loading" type="article, list-item-three-line@2" />
   <template v-else-if="workspace">
+    <div class="section-heading mb-4"><v-btn to="/teacher" variant="text" prepend-icon="mdi-arrow-left">All courses</v-btn><v-btn color="primary" @click="cohortDialog=true">Create cohort</v-btn></div>
     <v-card border class="mb-6">
       <v-card-title>Course details</v-card-title>
       <v-card-text>
@@ -208,6 +216,7 @@ onMounted(load)
         </v-expansion-panel-text>
       </v-expansion-panel>
     </v-expansion-panels>
+    <h2 class="mt-8 mb-3">Cohorts</h2><v-list v-if="cohorts.length" lines="two"><v-list-item v-for="cohort in cohorts" :key="cohort.id" :to="`/teacher/cohorts/${cohort.id}`" :title="cohort.title" :subtitle="`${cohort.start_date}–${cohort.end_date} · ${cohort.status}`" /></v-list><p v-else>No cohorts created from this course.</p>
   </template>
   <v-dialog v-model="moduleDialog" max-width="32rem"><v-card title="Add module"><v-card-text><v-text-field v-model="moduleTitle" label="Module title" /></v-card-text><v-card-actions><v-spacer /><v-btn @click="moduleDialog = false">Cancel</v-btn><v-btn color="primary" :disabled="!moduleTitle.trim()" @click="addModule">Add</v-btn></v-card-actions></v-card></v-dialog>
   <v-dialog v-model="editModuleDialog" max-width="32rem"><v-card title="Rename module"><v-card-text><v-text-field v-model="editingModuleTitle" label="Module title" /></v-card-text><v-card-actions><v-spacer /><v-btn @click="editModuleDialog = false">Cancel</v-btn><v-btn color="primary" :disabled="!editingModuleTitle.trim()" @click="updateModule">Save</v-btn></v-card-actions></v-card></v-dialog>
@@ -235,5 +244,6 @@ onMounted(load)
       <v-card-actions><v-spacer /><v-btn @click="outlineDialog = false">Cancel</v-btn><v-btn color="primary" :disabled="outlineResult.errors.length > 0" :loading="saving" @click="importOutline">Import</v-btn></v-card-actions>
     </v-card>
   </v-dialog>
+  <v-dialog v-model="cohortDialog" max-width="40rem"><v-card title="Create cohort from course"><v-card-text><v-text-field v-model="cohortTitle" label="Cohort title" /><div class="editor-meta-grid"><v-text-field v-model="cohortStart" type="date" label="Start date" /><v-text-field v-model="cohortEnd" type="date" label="End date" /></div><v-text-field v-model="cohortTimezone" label="IANA timezone" hint="Example: America/New_York" /></v-card-text><v-card-actions><v-spacer /><v-btn @click="cohortDialog=false">Cancel</v-btn><v-btn color="primary" :disabled="!cohortTitle||!cohortStart||!cohortEnd" @click="createCohort">Create snapshot</v-btn></v-card-actions></v-card></v-dialog>
   <v-snackbar :model-value="notice !== null" timeout="2500" @update:model-value="notice = $event ? notice : null">{{ notice }}</v-snackbar>
 </template>

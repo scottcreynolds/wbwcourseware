@@ -4,6 +4,8 @@ import { useRoute, useRouter } from 'vue-router'
 import { courseService } from '@/features/courses/courseService'
 import MarkdownContent from '@/shared/MarkdownContent.vue'
 import type { CourseItem, CourseItemResource, CurriculumItemKind, PublicationStatus } from '@/types/course'
+import { cohortService } from '@/features/cohorts/cohortService'
+import type { Cohort } from '@/types/cohort'
 
 const route = useRoute()
 const router = useRouter()
@@ -19,6 +21,7 @@ const resourceTitle = ref('')
 const resourceUrl = ref('')
 const resourceDialog = ref(false)
 const maxResourcePosition = computed(() => Math.max(-1, ...resources.value.map((resource) => resource.position)))
+const cohorts=ref<Cohort[]>([]),syncSelection=ref<string[]>([])
 
 async function load(): Promise<void> {
   loading.value = true
@@ -27,6 +30,7 @@ async function load(): Promise<void> {
     const result = await courseService.loadItem(itemId)
     item.value = result.item
     resources.value = result.resources
+    cohorts.value = await cohortService.listForCourse(courseId)
   } catch {
     errorMessage.value = 'Curriculum item could not be loaded or you do not have access.'
   } finally {
@@ -99,6 +103,7 @@ async function moveResource(resourceId: string, direction: -1 | 1): Promise<void
   ;[ordered[index], ordered[target]] = [ordered[target]!, ordered[index]!]
   try { await courseService.reorderResources(itemId, ordered.map((resource) => resource.id)); await load() } catch { errorMessage.value = 'Resources could not be reordered.' }
 }
+async function syncToCohorts(){if(!syncSelection.value.length)return;try{const count=await cohortService.syncItem(itemId,syncSelection.value);notice.value=`Updated ${count} cohort item${count===1?'':'s'}.`;syncSelection.value=[]}catch{errorMessage.value='Course change could not be applied to selected cohorts.'}}
 
 onMounted(load)
 </script>
@@ -118,6 +123,7 @@ onMounted(load)
     </v-card>
     <v-card border class="mb-6"><v-card-title>Preview</v-card-title><v-card-text><MarkdownContent :source="item.body_markdown" /></v-card-text></v-card>
     <v-card border><v-card-title class="section-heading">Resources <v-btn size="small" @click="resourceDialog = true">Add resource</v-btn></v-card-title><v-list v-if="resources.length"><v-list-item v-for="(resource, index) in resources" :key="resource.id" :title="resource.title" :subtitle="resource.url"><template #append><div class="row-actions"><v-btn icon="mdi-arrow-up" size="small" variant="text" :disabled="index === 0" @click="moveResource(resource.id, -1)" /><v-btn icon="mdi-arrow-down" size="small" variant="text" :disabled="index === resources.length - 1" @click="moveResource(resource.id, 1)" /><v-btn icon="mdi-delete-outline" size="small" variant="text" aria-label="Delete resource" @click="deleteResource(resource.id)" /></div></template></v-list-item></v-list><v-card-text v-else>No supplemental resources yet.</v-card-text></v-card>
+    <v-card v-if="cohorts.length" border class="mt-6"><v-card-title>Apply changes to cohorts</v-card-title><v-card-text><p class="mb-3">Overwrites matching content and resources. Cohort due dates, releases, and publication state remain unchanged.</p><v-select v-model="syncSelection" :items="cohorts" item-title="title" item-value="id" label="Cohorts" multiple chips /></v-card-text><v-card-actions><v-btn color="primary" :disabled="!syncSelection.length" @click="syncToCohorts">Apply changes</v-btn></v-card-actions></v-card>
   </template>
   <v-dialog v-model="resourceDialog" max-width="36rem"><v-card title="Add resource"><v-card-text><v-text-field v-model="resourceTitle" label="Title" /><v-text-field v-model="resourceUrl" label="URL" type="url" placeholder="https://" /></v-card-text><v-card-actions><v-spacer /><v-btn @click="resourceDialog = false">Cancel</v-btn><v-btn color="primary" :disabled="!resourceTitle.trim() || !resourceUrl.trim()" @click="addResource">Add</v-btn></v-card-actions></v-card></v-dialog>
   <v-snackbar :model-value="notice !== null" timeout="2500" @update:model-value="notice = $event ? notice : null">{{ notice }}</v-snackbar>

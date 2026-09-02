@@ -57,6 +57,7 @@ export const routes: RouteRecordRaw[] = [
     component: () => import('@/features/courses/ItemEditorPage.vue'),
     meta: { title: 'Curriculum editor', requiresAuth: true, requiredRole: 'teacher' },
   },
+  { path:'/teacher/cohorts/:cohortId',name:'cohort-editor',component:()=>import('@/features/cohorts/CohortEditorPage.vue'),meta:{title:'Cohort dashboard',requiresAuth:true,requiredRole:'teacher'} },
   {
     path: '/student',
     name: 'student-dashboard',

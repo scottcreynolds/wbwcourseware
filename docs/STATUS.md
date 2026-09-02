@@ -2,7 +2,7 @@
 
 ## Current milestone
 
-M2: Course Authoring — complete
+M3: Cohorts and Curriculum Snapshots — complete
 
 ## Completed
 
@@ -30,16 +30,22 @@ M2: Course Authoring — complete
 - Ordered resource links
 - Editable Markdown outline preview with atomic module/item scaffolding
 - Course curriculum schema, ownership RLS, and trusted atomic RPCs
+- Atomic cohort creation with copied modules, items, placements, and resources
+- Cohort dates, timezone, and lifecycle status
+- Manual and scheduled module release controls
+- Cohort-specific assignment due dates
+- Teacher-selected course-item sync preserving cohort scheduling and publication state
+- Cohort ownership RLS and snapshot/sync database operations
 
 ## Verification
 
 - `pnpm typecheck`: pass
 - `pnpm lint`: pass
-- `pnpm test`: pass — 11 tests
+- `pnpm test`: pass — 12 tests
 - `pnpm build`: pass
 - `pnpm test:e2e`: configured; local browser binary download required
 - Supabase Docker startup: requires local Docker environment
 
 ## Next authorized milestone
 
-M3: Cohorts and Curriculum Snapshots
+M4: Invitations and Enrollment
