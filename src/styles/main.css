@@ -96,8 +96,10 @@ html {
 .markdown-content pre { overflow-x: auto; padding: 1rem; background: #f1ece5; }
 .file-button { display: inline-block; margin-bottom: 1rem; padding: 0.5rem 0.8rem; border: 1px solid currentColor; border-radius: 0.5rem; cursor: pointer; }
 .file-button input { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+.invite-row { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: .75rem; align-items: start; }
 
 @media (max-width: 720px) {
   .editor-meta-grid { display: block; }
   .outline-item-row { grid-template-columns: 1fr; }
+  .invite-row { grid-template-columns: 1fr; }
 }

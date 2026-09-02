@@ -61,6 +61,12 @@ and optional `redirectTo`. Repeating same email is safe; a different second teac
 
 Never place bootstrap secret in frontend environment variables or commit it.
 
+## Student invitation email
+
+Local mode returns an invitation URL in teacher dashboard and sends no external email. Production requires
+`APP_ORIGIN`, `RESEND_API_KEY`, and verified `EMAIL_FROM` secrets for Edge Functions. Invitation links expire
+after 14 days and can be revoked or replaced from cohort dashboard.
+
 ## Document map
 
 - Product: `docs/PRD.md`, `docs/USER_FLOWS.md`, `docs/CONTENT_MODEL.md`

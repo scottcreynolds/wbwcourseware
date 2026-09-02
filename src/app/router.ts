@@ -33,6 +33,7 @@ export const routes: RouteRecordRaw[] = [
     component: () => import('@/features/auth/ConfirmEmailPage.vue'),
     meta: { title: 'Confirm email', public: true },
   },
+  {path:'/accept-invite',name:'accept-invite',component:()=>import('@/features/enrollment/AcceptInvitePage.vue'),meta:{title:'Accept invitation',public:true}},
   {
     path: '/access-denied',
     name: 'access-denied',

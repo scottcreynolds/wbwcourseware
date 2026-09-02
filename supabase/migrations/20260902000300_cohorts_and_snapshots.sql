@@ -124,7 +124,7 @@ begin
   if source_item.id is null or not public.owns_course(source_item.course_id) then raise exception 'not authorized'; end if;
   if exists(select 1 from unnest(target_cohort_ids) id where not exists(select 1 from public.cohorts c where c.id=id and c.course_id=source_item.course_id and public.owns_cohort(c.id))) then raise exception 'invalid cohort selection'; end if;
   for target_item in select ci.id from public.cohort_items ci where ci.source_item_id=source_item.id and ci.cohort_id=any(target_cohort_ids) loop
-    update public.cohort_items set title=source_item.title,kind=source_item.kind,slug=source_item.slug,body_markdown=source_item.body_markdown where id=target_item.id;
+    update public.cohort_items set title=source_item.title,slug=source_item.slug,body_markdown=source_item.body_markdown where id=target_item.id;
     delete from public.cohort_item_resources where item_id=target_item.id;
     insert into public.cohort_item_resources(item_id,source_resource_id,title,url,description,position)
       select target_item.id,r.id,r.title,r.url,r.description,r.position from public.course_item_resources r where r.item_id=source_item.id;

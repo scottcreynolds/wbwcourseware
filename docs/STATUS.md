@@ -2,7 +2,7 @@
 
 ## Current milestone
 
-M3: Cohorts and Curriculum Snapshots — complete
+M4: Invitations and Enrollment — complete
 
 ## Completed
 
@@ -36,6 +36,15 @@ M3: Cohorts and Curriculum Snapshots — complete
 - Cohort-specific assignment due dates
 - Teacher-selected course-item sync preserving cohort scheduling and publication state
 - Cohort ownership RLS and snapshot/sync database operations
+- Expiring, revocable, single-use cohort invitations
+- Rate-limited teacher invitation Edge Function with Resend delivery
+- Local-development invitation links when email is disabled
+- Invitation acceptance for new or existing student accounts
+- Atomic enrollment activation bound to invited email
+- Teacher roster with pending/accepted/revoked invitations
+- Student removal that retains records and immediately ends access
+- Student dashboard limited to active invited cohorts
+- Student RLS for active membership and released/published curriculum
 
 ## Verification
 
@@ -48,4 +57,4 @@ M3: Cohorts and Curriculum Snapshots — complete
 
 ## Next authorized milestone
 
-M4: Invitations and Enrollment
+M5: Learning Experience and PDF Views

@@ -1,9 +1,8 @@
-<template>
-  <v-card border>
-    <v-card-title>Your cohorts</v-card-title>
-    <v-card-text>
-      <p>No cohort invitations accepted yet.</p>
-      <p class="text-medium-emphasis">Only invited cohorts will appear here.</p>
-    </v-card-text>
-  </v-card>
-</template>
+<script setup lang="ts">
+import {onMounted,ref} from 'vue'
+import {enrollmentService} from '@/features/enrollment/enrollmentService'
+import type {Cohort} from '@/types/cohort'
+const cohorts=ref<Cohort[]>([]),loading=ref(true),errorMessage=ref<string|null>(null)
+onMounted(async()=>{try{cohorts.value=await enrollmentService.studentCohorts()}catch{errorMessage.value='Your cohorts could not be loaded.'}finally{loading.value=false}})
+</script>
+<template><v-alert v-if="errorMessage" type="error">{{ errorMessage }}</v-alert><v-skeleton-loader v-else-if="loading" type="list-item-two-line@3" /><v-empty-state v-else-if="!cohorts.length" headline="No cohorts yet" text="Cohorts appear after you accept an invitation." /><v-row v-else><v-col v-for="cohort in cohorts" :key="cohort.id" cols="12" md="6"><v-card border><v-card-title>{{ cohort.title }}</v-card-title><v-card-subtitle>{{ cohort.start_date }}–{{ cohort.end_date }}</v-card-subtitle><v-card-text>Course materials become available as your teacher releases modules.</v-card-text></v-card></v-col></v-row></template>
