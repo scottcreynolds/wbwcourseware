@@ -1,0 +1,78 @@
+import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
+import { canAccessRole } from '@/features/auth/authRules'
+import { useAuthStore } from '@/features/auth/authStore'
+
+export const routes: RouteRecordRaw[] = [
+  {
+    path: '/',
+    name: 'home',
+    component: () => import('@/features/home/HomePage.vue'),
+    meta: { title: 'Courseware' },
+  },
+  {
+    path: '/login',
+    name: 'login',
+    component: () => import('@/features/auth/LoginPage.vue'),
+    meta: { title: 'Sign in', public: true },
+  },
+  {
+    path: '/forgot-password',
+    name: 'forgot-password',
+    component: () => import('@/features/auth/ForgotPasswordPage.vue'),
+    meta: { title: 'Reset password', public: true },
+  },
+  {
+    path: '/update-password',
+    name: 'update-password',
+    component: () => import('@/features/auth/UpdatePasswordPage.vue'),
+    meta: { title: 'Choose new password', public: true },
+  },
+  {
+    path: '/confirm-email',
+    name: 'confirm-email',
+    component: () => import('@/features/auth/ConfirmEmailPage.vue'),
+    meta: { title: 'Confirm email', public: true },
+  },
+  {
+    path: '/access-denied',
+    name: 'access-denied',
+    component: () => import('@/features/auth/AccessDeniedPage.vue'),
+    meta: { title: 'Access denied', public: true },
+  },
+  {
+    path: '/teacher',
+    name: 'teacher-dashboard',
+    component: () => import('@/features/teacher/TeacherDashboardPage.vue'),
+    meta: { title: 'Teacher dashboard', requiresAuth: true, requiredRole: 'teacher' },
+  },
+  {
+    path: '/student',
+    name: 'student-dashboard',
+    component: () => import('@/features/student/StudentDashboardPage.vue'),
+    meta: { title: 'My courses', requiresAuth: true, requiredRole: 'student' },
+  },
+  {
+    path: '/:pathMatch(.*)*',
+    name: 'not-found',
+    component: () => import('@/features/system/NotFoundPage.vue'),
+    meta: { title: 'Page not found' },
+  },
+]
+
+export const router = createRouter({
+  history: createWebHistory(import.meta.env.BASE_URL),
+  routes,
+  scrollBehavior: () => ({ top: 0 }),
+})
+
+router.beforeEach(async (to) => {
+  if (!to.meta.requiresAuth) return true
+
+  const auth = useAuthStore()
+  await auth.initialize()
+  if (!auth.isAuthenticated || !auth.profile) {
+    return { name: 'login', query: { redirect: to.fullPath } }
+  }
+  if (!canAccessRole(auth.profile.role, to.meta.requiredRole)) return { name: 'access-denied' }
+  return true
+})

@@ -1,0 +1,2 @@
+-- M0 intentionally contains no application data.
+-- Deterministic local fixtures begin with the schema introduced in M1.
