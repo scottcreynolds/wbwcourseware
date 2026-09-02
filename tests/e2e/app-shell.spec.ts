@@ -1,8 +1,8 @@
 import { expect, test } from '@playwright/test'
 
-test('navigates between role placeholders', async ({ page }) => {
+test('opens the sign-in flow from the public home page', async ({ page }) => {
   await page.goto('/')
   await expect(page.getByRole('heading', { name: 'Courseware', level: 1 })).toBeVisible()
-  await page.getByRole('link', { name: 'Teacher dashboard' }).click()
-  await expect(page.getByRole('heading', { name: 'Teacher dashboard', level: 1 })).toBeVisible()
+  await page.getByRole('link', { name: 'Sign in' }).first().click()
+  await expect(page.getByRole('heading', { name: 'Sign in', level: 1 })).toBeVisible()
 })

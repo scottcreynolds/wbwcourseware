@@ -46,6 +46,18 @@ export const routes: RouteRecordRaw[] = [
     meta: { title: 'Teacher dashboard', requiresAuth: true, requiredRole: 'teacher' },
   },
   {
+    path: '/teacher/courses/:courseId',
+    name: 'course-editor',
+    component: () => import('@/features/courses/CourseEditorPage.vue'),
+    meta: { title: 'Course editor', requiresAuth: true, requiredRole: 'teacher' },
+  },
+  {
+    path: '/teacher/courses/:courseId/items/:itemId',
+    name: 'item-editor',
+    component: () => import('@/features/courses/ItemEditorPage.vue'),
+    meta: { title: 'Curriculum editor', requiresAuth: true, requiredRole: 'teacher' },
+  },
+  {
     path: '/student',
     name: 'student-dashboard',
     component: () => import('@/features/student/StudentDashboardPage.vue'),

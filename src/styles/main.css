@@ -73,3 +73,31 @@ html {
 .auth-card {
   width: min(100%, 34rem);
 }
+
+.section-heading,
+.row-actions,
+.editor-meta-grid {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.section-heading { justify-content: space-between; flex-wrap: wrap; }
+.row-actions { flex-wrap: wrap; }
+.compact-actions { margin-top: 0; }
+.editor-meta-grid { align-items: start; }
+.editor-meta-grid > * { flex: 1 1 12rem; }
+.outline-item-row { display: grid; grid-template-columns: 10rem 1fr; gap: 0.75rem; }
+.monospace-input textarea { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
+.markdown-content { line-height: 1.65; }
+.markdown-content :is(h1, h2, h3, h4) { margin-block: 1.25em 0.45em; }
+.markdown-content img,
+.markdown-content iframe { max-width: 100%; }
+.markdown-content pre { overflow-x: auto; padding: 1rem; background: #f1ece5; }
+.file-button { display: inline-block; margin-bottom: 1rem; padding: 0.5rem 0.8rem; border: 1px solid currentColor; border-radius: 0.5rem; cursor: pointer; }
+.file-button input { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+
+@media (max-width: 720px) {
+  .editor-meta-grid { display: block; }
+  .outline-item-row { grid-template-columns: 1fr; }
+}
