@@ -66,6 +66,29 @@ export const routes: RouteRecordRaw[] = [
     meta: { title: 'My courses', requiresAuth: true, requiredRole: 'student' },
   },
   {
+    path: '/student/cohorts/:cohortId',
+    name: 'student-cohort',
+    component: () => import('@/features/learning/StudentCohortPage.vue'),
+    meta: { title: 'Course materials', requiresAuth: true, requiredRole: 'student' },
+  },
+  {
+    path: '/student/cohorts/:cohortId/items/:itemId',
+    name: 'student-item',
+    component: () => import('@/features/learning/StudentItemPage.vue'),
+    meta: { title: 'Course page', requiresAuth: true, requiredRole: 'student' },
+  },
+  {
+    path: '/student/cohorts/:cohortId/items/:itemId/print',
+    name: 'student-item-print',
+    component: () => import('@/features/learning/StudentItemPage.vue'),
+    meta: {
+      title: 'Printable course page',
+      requiresAuth: true,
+      requiredRole: 'student',
+      printView: true,
+    },
+  },
+  {
     path: '/:pathMatch(.*)*',
     name: 'not-found',
     component: () => import('@/features/system/NotFoundPage.vue'),

@@ -8,5 +8,6 @@ declare module 'vue-router' {
     public?: boolean
     requiresAuth?: boolean
     requiredRole?: AppRole
+    printView?: boolean
   }
 }

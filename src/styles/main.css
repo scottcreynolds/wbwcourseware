@@ -97,9 +97,32 @@ html {
 .file-button { display: inline-block; margin-bottom: 1rem; padding: 0.5rem 0.8rem; border: 1px solid currentColor; border-radius: 0.5rem; cursor: pointer; }
 .file-button input { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
 .invite-row { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: .75rem; align-items: start; }
+.course-header { margin-bottom: 2rem; }
+.course-header h2,.document-title { font-size: clamp(1.8rem,4vw,3rem); }
+.locked-module { background: #f1eee9; }
+.print-document { max-width: 50rem; margin-inline: auto; background: #fff; padding: clamp(1.25rem,4vw,3rem); }
+.print-header { border-bottom: 2px solid #4f355f; margin-bottom: 2rem; padding-bottom: .75rem; }
+.brand-name { color: #4f355f; font-size: 1.15rem; font-weight: 800; }
+.due-date { font-weight: 700; margin-block: .75rem 1.5rem; }
+.resource-section { border-top: 1px solid #bbb; margin-top: 2.5rem; padding-top: 1rem; }
+.resource-section li { margin-bottom: .75rem; }
+.print-url { overflow-wrap: anywhere; }
+.print-actions { margin-top: 2rem; }
 
 @media (max-width: 720px) {
   .editor-meta-grid { display: block; }
   .outline-item-row { grid-template-columns: 1fr; }
   .invite-row { grid-template-columns: 1fr; }
+}
+
+@media print {
+  @page { margin: .7in; }
+  .v-application__wrap > header,.screen-only,.page-title { display:none !important; }
+  .v-main { padding:0 !important; }
+  .page-container,.print-document { width:auto; max-width:none; margin:0; padding:0; }
+  body,.v-application,.v-main { background:#fff !important; color:#111 !important; }
+  .markdown-content a,.resource-section a { color:#111; text-decoration:underline; }
+  .markdown-content h1,.markdown-content h2,.markdown-content h3 { break-after:avoid; }
+  .markdown-content img,.resource-section li { break-inside:avoid; }
+  .markdown-content iframe { display:none; }
 }

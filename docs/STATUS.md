@@ -2,7 +2,7 @@
 
 ## Current milestone
 
-M4: Invitations and Enrollment — complete
+M5: Learning Experience and PDF Views — complete
 
 ## Completed
 
@@ -45,16 +45,22 @@ M4: Invitations and Enrollment — complete
 - Student removal that retains records and immediately ends access
 - Student dashboard limited to active invited cohorts
 - Student RLS for active membership and released/published curriculum
+- Student cohort pages with released and scheduled-module navigation
+- Locked-module summaries that hide unpublished curriculum details
+- Published lecture and assignment pages with ordered resources
+- Cohort-local due dates with timezone-aware display
+- Branded, print-optimized curriculum views for browser PDF export
+- Security-definer student outline query that avoids locked-content leakage
 
 ## Verification
 
 - `pnpm typecheck`: pass
 - `pnpm lint`: pass
-- `pnpm test`: pass — 12 tests
+- `pnpm test`: pass — 14 tests
 - `pnpm build`: pass
 - `pnpm test:e2e`: configured; local browser binary download required
 - Supabase Docker startup: requires local Docker environment
 
 ## Next authorized milestone
 
-M5: Learning Experience and PDF Views
+M6: Private Submissions and Workshop Sharing
