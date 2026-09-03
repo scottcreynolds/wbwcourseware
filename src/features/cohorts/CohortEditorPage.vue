@@ -5,6 +5,7 @@ import { cohortService } from '@/features/cohorts/cohortService'
 import type { Cohort,CohortItem,CohortModule,CohortStatus,ReleaseMode } from '@/types/cohort'
 import {enrollmentService} from '@/features/enrollment/enrollmentService'
 import type {CohortEnrollment,CohortInvitation} from '@/types/enrollment'
+import SubmissionPanel from '@/features/submissions/SubmissionPanel.vue'
 
 const id=String(useRoute().params.cohortId)
 const cohort=ref<Cohort|null>(null),modules=ref<CohortModule[]>([]),items=ref<CohortItem[]>([])
@@ -28,6 +29,13 @@ onMounted(load)
     <v-card border class="mb-6"><v-card-title>Cohort details</v-card-title><v-card-text><v-text-field v-model="cohort.title" label="Title" /><div class="editor-meta-grid"><v-text-field v-model="cohort.start_date" type="date" label="Start date" /><v-text-field v-model="cohort.end_date" type="date" label="End date" /><v-text-field v-model="cohort.timezone" label="IANA timezone" /><v-select v-model="cohort.status" :items="(['draft','active','archived'] satisfies CohortStatus[])" label="Status" /></div></v-card-text><v-card-actions><v-btn color="primary" :loading="saving" @click="saveCohort">Save</v-btn></v-card-actions></v-card>
     <h2 class="mb-3">Module release</h2><v-card v-for="module in modules" :key="module.id" border class="mb-3"><v-card-title>{{ module.title }}</v-card-title><v-card-text><v-select v-model="module.release_mode" :items="(['manual','scheduled'] satisfies ReleaseMode[])" label="Release method" /><v-text-field v-if="module.release_mode==='scheduled'" v-model="module.release_at" type="datetime-local" label="Release date and time" /><v-btn v-else variant="outlined" @click="toggleManual(module)">{{ module.manually_released_at?'Lock module':'Release now' }}</v-btn></v-card-text><v-card-actions v-if="module.release_mode==='scheduled'"><v-btn @click="saveModule(module)">Save schedule</v-btn></v-card-actions></v-card>
     <h2 class="mt-6 mb-3">Assignment due dates</h2><v-card v-for="item in assignments" :key="item.id" border class="mb-3"><v-card-title>{{ item.title }}</v-card-title><v-card-text><v-text-field v-model="item.due_at" type="datetime-local" label="Due date and time" /></v-card-text><v-card-actions><v-btn @click="saveDue(item)">Save due date</v-btn></v-card-actions></v-card>
+    <h2 class="mt-6 mb-3">Submission review</h2>
+    <v-expansion-panels multiple>
+      <v-expansion-panel v-for="item in assignments" :key="item.id">
+        <v-expansion-panel-title>{{ item.title }}</v-expansion-panel-title>
+        <v-expansion-panel-text><SubmissionPanel :item-id="item.id" /></v-expansion-panel-text>
+      </v-expansion-panel>
+    </v-expansion-panels>
     <h2 class="mt-6 mb-3">Students</h2><v-card border class="mb-4"><v-card-title>Invite student</v-card-title><v-card-text><div class="invite-row"><v-text-field v-model="inviteEmail" type="email" label="Student email" /><v-btn color="primary" @click="invite">Send invite</v-btn></div><v-alert v-if="localInviteUrl" type="info">Local invite link: <a :href="localInviteUrl">{{ localInviteUrl }}</a></v-alert></v-card-text></v-card>
     <v-list border rounded><v-list-subheader>Enrolled</v-list-subheader><v-list-item v-for="enrollment in enrollments" :key="enrollment.id" :title="enrollment.profiles?.display_name||enrollment.profiles?.email_normalized||'Student'" :subtitle="enrollment.status"><template #append><v-btn v-if="enrollment.status==='active'" color="error" variant="text" @click="removeStudent(enrollment.id)">Remove</v-btn></template></v-list-item><v-list-subheader>Invitations</v-list-subheader><v-list-item v-for="invitation in invitations" :key="invitation.id" :title="invitation.email_normalized" :subtitle="`${invitation.status} · expires ${new Date(invitation.expires_at).toLocaleDateString()}`"><template #append><v-btn v-if="invitation.status==='pending'" variant="text" @click="revoke(invitation.id)">Revoke</v-btn></template></v-list-item></v-list>
   </template>

@@ -53,3 +53,9 @@ verify_jwt = false
 verify_jwt = false
 [functions.invite-student]
 verify_jwt = true
+[functions.submission-upload-intent]
+verify_jwt = true
+[functions.finalize-submission]
+verify_jwt = true
+[functions.submission-download]
+verify_jwt = true

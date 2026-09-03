@@ -2,7 +2,7 @@
 
 ## Current milestone
 
-M5: Learning Experience and PDF Views — complete
+M6: Submissions — complete
 
 ## Completed
 
@@ -51,16 +51,21 @@ M5: Learning Experience and PDF Views — complete
 - Cohort-local due dates with timezone-aware display
 - Branded, print-optimized curriculum views for browser PDF export
 - Security-definer student outline query that avoids locked-content leakage
+- Private, PDF-only submission storage with 25 MB file limits
+- Signed upload intents and short-lived authorized download links
+- Immutable submission versions with server-derived late labels
+- Immediate peer submission visibility within active cohort membership
+- Teacher assignment review panels with submission version history
 
 ## Verification
 
 - `pnpm typecheck`: pass
 - `pnpm lint`: pass
-- `pnpm test`: pass — 14 tests
+- `pnpm test`: pass — 16 tests
 - `pnpm build`: pass
 - `pnpm test:e2e`: configured; local browser binary download required
 - Supabase Docker startup: requires local Docker environment
 
 ## Next authorized milestone
 
-M6: Private Submissions and Workshop Sharing
+M7: Announcements and Email Delivery

@@ -4,6 +4,7 @@ import {useRoute} from 'vue-router'
 import {learningService} from '@/features/learning/learningService'
 import {formatCourseDate} from '@/features/learning/dateFormat'
 import MarkdownContent from '@/shared/MarkdownContent.vue'
+import SubmissionPanel from '@/features/submissions/SubmissionPanel.vue'
 import type {CohortItem} from '@/types/cohort'
 import type {CourseItemResource} from '@/types/course'
 import type {LearningOutline} from '@/types/learning'
@@ -22,7 +23,7 @@ function printPage(){window.print()}
     <p v-if="item.due_at" class="due-date">Due {{ formatCourseDate(item.due_at,outline.cohort.timezone) }}</p>
     <MarkdownContent :source="item.body_markdown" />
     <section v-if="resources.length" class="resource-section" aria-labelledby="resources-title"><h3 id="resources-title">Resources</h3><ol><li v-for="resource in resources" :key="resource.id"><a :href="resource.url" target="_blank" rel="noopener noreferrer">{{ resource.title }}</a><span class="print-url"> — {{ resource.url }}</span><p v-if="resource.description">{{ resource.description }}</p></li></ol></section>
+    <SubmissionPanel v-if="item.kind === 'assignment' && !printView" :item-id="item.id" can-submit />
     <div v-if="printView" class="screen-only print-actions"><v-btn color="primary" prepend-icon="mdi-printer" @click="printPage">Open print / save as PDF</v-btn></div>
   </article>
 </template>
-
