@@ -5,6 +5,7 @@ import {learningService} from '@/features/learning/learningService'
 import {formatCourseDate} from '@/features/learning/dateFormat'
 import type {LearningOutline} from '@/types/learning'
 import AnnouncementList from '@/features/announcements/AnnouncementList.vue'
+import DiscussionBoard from '@/features/discussions/DiscussionBoard.vue'
 const id=String(useRoute().params.cohortId),outline=ref<LearningOutline|null>(null),loading=ref(true),errorMessage=ref<string|null>(null)
 const availableCount=computed(()=>outline.value?.modules.filter(module=>module.isVisible).length??0)
 onMounted(async()=>{try{outline.value=await learningService.outline(id)}catch{errorMessage.value='This cohort is unavailable or you no longer have access.'}finally{loading.value=false}})
@@ -20,5 +21,6 @@ onMounted(async()=>{try{outline.value=await learningService.outline(id)}catch{er
       <v-card-title><v-icon :icon="module.isVisible?'mdi-book-open-page-variant':'mdi-lock-outline'" class="mr-2" />{{ module.title }}</v-card-title>
       <v-card-text><p v-if="module.description">{{ module.description }}</p><p v-if="!module.isVisible" class="text-medium-emphasis">{{ module.releaseAt?`Available ${formatCourseDate(module.releaseAt,outline.cohort.timezone)}`:'Not released yet.' }}</p><v-list v-else-if="module.items.length"><v-list-item v-for="item in module.items" :key="item.id" :to="`/student/cohorts/${id}/items/${item.id}`" :title="item.title"><template #prepend><v-icon :icon="item.kind==='assignment'?'mdi-file-upload-outline':'mdi-text-box-outline'" /></template><v-list-item-subtitle v-if="item.dueAt">Due {{ formatCourseDate(item.dueAt,outline.cohort.timezone) }}</v-list-item-subtitle></v-list-item></v-list><p v-else class="text-medium-emphasis">No published items in this module.</p></v-card-text>
     </v-card>
+    <DiscussionBoard :cohort-id="id" class="mt-6" />
   </template>
 </template>

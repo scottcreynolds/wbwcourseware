@@ -2,7 +2,7 @@
 
 ## Current milestone
 
-M7: Announcements and Email — complete
+M8: Discussions — complete
 
 ## Completed
 
@@ -61,6 +61,11 @@ M7: Announcements and Email — complete
 - Resend delivery with per-recipient sent/failed tracking
 - Local email simulation for Docker development
 - Published announcement display for active students
+- Cohort discussion topics with one-level replies
+- Markdown discussion content with shared sanitization
+- Author edit and soft-delete controls
+- Teacher moderation across cohort content
+- Safe display-name projection without exposing student email
 
 ## Verification
 
@@ -73,4 +78,4 @@ M7: Announcements and Email — complete
 
 ## Next authorized milestone
 
-M8: Discussions and Moderation
+M9: Security, Accessibility, and Deployment Readiness

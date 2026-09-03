@@ -1,0 +1,12 @@
+begin;
+select plan(8);
+select has_table('public', 'discussion_topics', 'topics table exists');
+select has_table('public', 'discussion_replies', 'replies table exists');
+select has_column('public', 'discussion_topics', 'deleted_at', 'topics soft-delete');
+select has_column('public', 'discussion_replies', 'deleted_at', 'replies soft-delete');
+select isnt_empty($$select 1 from pg_policies where tablename='discussion_topics' and policyname='authors or teacher update topics'$$, 'topic moderation policy exists');
+select isnt_empty($$select 1 from pg_policies where tablename='discussion_replies' and policyname='authors or teacher update replies'$$, 'reply moderation policy exists');
+select hasnt_column('public', 'discussion_replies', 'parent_id', 'replies cannot nest');
+select has_function('public', 'get_cohort_discussions', array['uuid'], 'safe discussion query exists');
+select * from finish();
+rollback;

@@ -7,6 +7,7 @@ import {enrollmentService} from '@/features/enrollment/enrollmentService'
 import type {CohortEnrollment,CohortInvitation} from '@/types/enrollment'
 import SubmissionPanel from '@/features/submissions/SubmissionPanel.vue'
 import AnnouncementList from '@/features/announcements/AnnouncementList.vue'
+import DiscussionBoard from '@/features/discussions/DiscussionBoard.vue'
 
 const id=String(useRoute().params.cohortId)
 const cohort=ref<Cohort|null>(null),modules=ref<CohortModule[]>([]),items=ref<CohortItem[]>([])
@@ -40,5 +41,6 @@ onMounted(load)
     <h2 class="mt-6 mb-3">Students</h2><v-card border class="mb-4"><v-card-title>Invite student</v-card-title><v-card-text><div class="invite-row"><v-text-field v-model="inviteEmail" type="email" label="Student email" /><v-btn color="primary" @click="invite">Send invite</v-btn></div><v-alert v-if="localInviteUrl" type="info">Local invite link: <a :href="localInviteUrl">{{ localInviteUrl }}</a></v-alert></v-card-text></v-card>
     <v-list border rounded><v-list-subheader>Enrolled</v-list-subheader><v-list-item v-for="enrollment in enrollments" :key="enrollment.id" :title="enrollment.profiles?.display_name||enrollment.profiles?.email_normalized||'Student'" :subtitle="enrollment.status"><template #append><v-btn v-if="enrollment.status==='active'" color="error" variant="text" @click="removeStudent(enrollment.id)">Remove</v-btn></template></v-list-item><v-list-subheader>Invitations</v-list-subheader><v-list-item v-for="invitation in invitations" :key="invitation.id" :title="invitation.email_normalized" :subtitle="`${invitation.status} · expires ${new Date(invitation.expires_at).toLocaleDateString()}`"><template #append><v-btn v-if="invitation.status==='pending'" variant="text" @click="revoke(invitation.id)">Revoke</v-btn></template></v-list-item></v-list>
     <AnnouncementList :cohort-id="id" teacher class="mt-6" />
+    <DiscussionBoard :cohort-id="id" teacher class="mt-6" />
   </template>
 </template>
