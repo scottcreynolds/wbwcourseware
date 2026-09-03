@@ -2,7 +2,7 @@
 
 ## Current milestone
 
-M6: Submissions — complete
+M7: Announcements and Email — complete
 
 ## Completed
 
@@ -56,6 +56,11 @@ M6: Submissions — complete
 - Immutable submission versions with server-derived late labels
 - Immediate peer submission visibility within active cohort membership
 - Teacher assignment review panels with submission version history
+- Cohort announcement drafts and publish-now workflow
+- Idempotent active-student recipient resolution
+- Resend delivery with per-recipient sent/failed tracking
+- Local email simulation for Docker development
+- Published announcement display for active students
 
 ## Verification
 
@@ -68,4 +73,4 @@ M6: Submissions — complete
 
 ## Next authorized milestone
 
-M7: Announcements and Email Delivery
+M8: Discussions and Moderation

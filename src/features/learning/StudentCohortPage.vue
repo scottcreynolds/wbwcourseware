@@ -4,6 +4,7 @@ import {useRoute} from 'vue-router'
 import {learningService} from '@/features/learning/learningService'
 import {formatCourseDate} from '@/features/learning/dateFormat'
 import type {LearningOutline} from '@/types/learning'
+import AnnouncementList from '@/features/announcements/AnnouncementList.vue'
 const id=String(useRoute().params.cohortId),outline=ref<LearningOutline|null>(null),loading=ref(true),errorMessage=ref<string|null>(null)
 const availableCount=computed(()=>outline.value?.modules.filter(module=>module.isVisible).length??0)
 onMounted(async()=>{try{outline.value=await learningService.outline(id)}catch{errorMessage.value='This cohort is unavailable or you no longer have access.'}finally{loading.value=false}})
@@ -13,6 +14,7 @@ onMounted(async()=>{try{outline.value=await learningService.outline(id)}catch{er
   <v-alert v-if="errorMessage" type="error">{{ errorMessage }}</v-alert><v-skeleton-loader v-else-if="loading" type="article,list-item-three-line@3" />
   <template v-else-if="outline">
     <header class="course-header"><p class="eyebrow">{{ outline.course.title }}</p><h2>{{ outline.cohort.title }}</h2><p>{{ outline.cohort.startDate }}–{{ outline.cohort.endDate }}</p></header>
+    <AnnouncementList :cohort-id="id" class="mb-6" />
     <v-empty-state v-if="availableCount===0" headline="Nothing released yet" text="Your teacher will release modules when they are ready." />
     <v-card v-for="module in outline.modules" :key="module.id" border class="mb-4" :class="{'locked-module':!module.isVisible}">
       <v-card-title><v-icon :icon="module.isVisible?'mdi-book-open-page-variant':'mdi-lock-outline'" class="mr-2" />{{ module.title }}</v-card-title>
@@ -20,4 +22,3 @@ onMounted(async()=>{try{outline.value=await learningService.outline(id)}catch{er
     </v-card>
   </template>
 </template>
-

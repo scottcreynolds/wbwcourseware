@@ -59,3 +59,5 @@ verify_jwt = true
 verify_jwt = true
 [functions.submission-download]
 verify_jwt = true
+[functions.publish-announcement]
+verify_jwt = true
