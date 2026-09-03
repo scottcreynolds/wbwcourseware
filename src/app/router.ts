@@ -113,3 +113,8 @@ router.beforeEach(async (to) => {
   if (!canAccessRole(auth.profile.role, to.meta.requiredRole)) return { name: 'access-denied' }
   return true
 })
+
+router.afterEach((to) => {
+  document.title = `${String(to.meta.title ?? 'Courseware')} · Writers Be Writing`
+  requestAnimationFrame(() => document.querySelector<HTMLElement>('#main-content')?.focus())
+})

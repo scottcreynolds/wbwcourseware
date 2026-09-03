@@ -7,7 +7,7 @@ export type SubmissionVersion = {
   files: SubmissionFile[]
 }
 export type AssignmentSubmission = {
-  id: string
+  id: string | null
   studentId: string
   studentName: string
   versions: SubmissionVersion[]

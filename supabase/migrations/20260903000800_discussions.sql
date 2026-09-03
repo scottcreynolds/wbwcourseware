@@ -33,6 +33,9 @@ begin
   if tg_table_name = 'discussion_replies' and (new.topic_id <> old.topic_id or new.author_id <> old.author_id) then
     raise exception 'discussion identity is immutable';
   end if;
+  if old.deleted_at is not null and current_user not in ('service_role', 'postgres') then
+    raise exception 'deleted discussion content is immutable';
+  end if;
   return new;
 end $$;
 create trigger protect_discussion_topic_identity before update on public.discussion_topics
@@ -44,7 +47,7 @@ alter table public.discussion_topics enable row level security;
 alter table public.discussion_replies enable row level security;
 
 create policy "members read topics" on public.discussion_topics for select to authenticated
-using(public.owns_cohort(cohort_id) or public.is_active_student_in_cohort(cohort_id));
+using(public.owns_cohort(cohort_id) or (deleted_at is null and public.is_active_student_in_cohort(cohort_id)));
 create policy "members create topics" on public.discussion_topics for insert to authenticated
 with check(author_id = (select auth.uid()) and (public.owns_cohort(cohort_id) or public.is_active_student_in_cohort(cohort_id)));
 create policy "authors or teacher update topics" on public.discussion_topics for update to authenticated
@@ -54,7 +57,7 @@ with check(author_id = (select auth.uid()) or public.owns_cohort(cohort_id));
 create policy "members read replies" on public.discussion_replies for select to authenticated
 using(exists(
   select 1 from public.discussion_topics t where t.id = discussion_replies.topic_id
-    and (public.owns_cohort(t.cohort_id) or public.is_active_student_in_cohort(t.cohort_id))
+    and (public.owns_cohort(t.cohort_id) or (discussion_replies.deleted_at is null and public.is_active_student_in_cohort(t.cohort_id)))
 ));
 create policy "members create replies" on public.discussion_replies for insert to authenticated
 with check(author_id = (select auth.uid()) and exists(
@@ -76,11 +79,14 @@ as $$
   select case when public.owns_cohort(target_cohort_id) or public.is_active_student_in_cohort(target_cohort_id)
     then coalesce(jsonb_agg(jsonb_build_object(
       'id', t.id, 'authorId', t.author_id, 'authorName', coalesce(p.display_name, 'Member'),
-      'title', t.title, 'bodyMarkdown', t.body_markdown, 'createdAt', t.created_at,
+      'title', case when t.deleted_at is null or public.owns_cohort(target_cohort_id) then t.title else 'Deleted topic' end,
+      'bodyMarkdown', case when t.deleted_at is null or public.owns_cohort(target_cohort_id) then t.body_markdown else '' end,
+      'createdAt', t.created_at,
       'deletedAt', t.deleted_at, 'replies', (
         select coalesce(jsonb_agg(jsonb_build_object(
           'id', r.id, 'authorId', r.author_id, 'authorName', coalesce(rp.display_name, 'Member'),
-          'bodyMarkdown', r.body_markdown, 'createdAt', r.created_at, 'deletedAt', r.deleted_at
+          'bodyMarkdown', case when r.deleted_at is null or public.owns_cohort(target_cohort_id) then r.body_markdown else '' end,
+          'createdAt', r.created_at, 'deletedAt', r.deleted_at
         ) order by r.created_at), '[]'::jsonb)
         from public.discussion_replies r join public.profiles rp on rp.id = r.author_id
         where r.topic_id = t.id

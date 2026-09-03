@@ -50,6 +50,13 @@ pnpm verify
 pnpm test:e2e
 ```
 
+Database and Edge Function checks require running local Supabase:
+
+```bash
+pnpm test:db
+pnpm test:functions
+```
+
 Stop local services with `pnpm supabase:stop`.
 
 ## Bootstrap teacher
@@ -71,7 +78,7 @@ after 14 days and can be revoked or replaced from cohort dashboard.
 
 - Product: `docs/PRD.md`, `docs/USER_FLOWS.md`, `docs/CONTENT_MODEL.md`
 - Engineering: `docs/ARCHITECTURE.md`, `docs/DATABASE.md`, `docs/SECURITY.md`
-- Operations: `docs/AUTH_AND_INVITES.md`, `docs/STORAGE.md`, `docs/EMAIL.md`, `docs/PDF_EXPORT.md`
+- Operations: `docs/AUTH_AND_INVITES.md`, `docs/STORAGE.md`, `docs/EMAIL.md`, `docs/PDF_EXPORT.md`, `docs/OPERATIONS.md`, `docs/OBSERVABILITY.md`, `docs/DEPLOYMENT.md`
 - Delivery: `docs/TEST_PLAN.md`, `docs/IMPLEMENTATION_PLAN.md`, `docs/BACKLOG.md`
 - Decisions: `docs/decisions/`
 - Executable milestones: `docs/milestones/`

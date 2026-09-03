@@ -8,6 +8,11 @@ html {
   background: #f7f4ef;
 }
 
+:focus-visible {
+  outline: 3px solid #1d6fb8;
+  outline-offset: 3px;
+}
+
 .skip-link {
   position: fixed;
   left: 1rem;
@@ -108,6 +113,7 @@ html {
 .resource-section li { margin-bottom: .75rem; }
 .print-url { overflow-wrap: anywhere; }
 .print-actions { margin-top: 2rem; }
+.submission-panel { margin-top: 2.5rem; }
 
 @media (max-width: 720px) {
   .editor-meta-grid { display: block; }

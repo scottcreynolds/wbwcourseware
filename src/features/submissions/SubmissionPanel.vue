@@ -65,9 +65,10 @@ onMounted(load)
     <v-skeleton-loader v-if="loading" type="list-item-three-line@2" />
     <v-empty-state v-else-if="!submissions.length" headline="No submissions yet" />
     <v-expansion-panels v-else multiple>
-      <v-expansion-panel v-for="submission in submissions" :key="submission.id">
-        <v-expansion-panel-title>{{ submission.studentName }} · {{ submission.versions.length }} version{{ submission.versions.length === 1 ? '' : 's' }}</v-expansion-panel-title>
+      <v-expansion-panel v-for="submission in submissions" :key="submission.studentId">
+        <v-expansion-panel-title>{{ submission.studentName }} · {{ submission.versions.length ? `${submission.versions.length} version${submission.versions.length === 1 ? '' : 's'}` : 'Missing' }}</v-expansion-panel-title>
         <v-expansion-panel-text>
+          <p v-if="!submission.versions.length" class="text-medium-emphasis">No submission received.</p>
           <div v-for="version in submission.versions" :key="version.id" class="mb-4">
             <strong>Version {{ version.versionNumber }}</strong>
             <v-chip v-if="version.isLate" color="warning" size="small" class="ml-2">Late</v-chip>

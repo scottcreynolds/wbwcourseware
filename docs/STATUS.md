@@ -2,7 +2,7 @@
 
 ## Current milestone
 
-M8: Discussions — complete
+M9: Hardening and Deployment Readiness — implementation complete
 
 ## Completed
 
@@ -66,6 +66,13 @@ M8: Discussions — complete
 - Author edit and soft-delete controls
 - Teacher moderation across cohort content
 - Safe display-name projection without exposing student email
+- Released-item checks on peer submission metadata and signed downloads
+- Teacher missing/on-time/late submission overview support
+- Deleted discussion bodies hidden from students and made immutable
+- Restricted Edge Function CORS origin and production browser security headers
+- Database indexes for ownership, release, due-date, enrollment, and rate-limit paths
+- Route focus management and visible keyboard focus
+- Deployment, observability, incident, backup, and restore runbooks
 
 ## Verification
 
@@ -76,6 +83,9 @@ M8: Discussions — complete
 - `pnpm test:e2e`: configured; local browser binary download required
 - Supabase Docker startup: requires local Docker environment
 
-## Next authorized milestone
+## Remaining launch gates
 
-M9: Security, Accessibility, and Deployment Readiness
+- Run database, Edge Function, and browser integration suites with Docker and Playwright browsers.
+- Complete staging email/domain verification and real backup/restore drill.
+- Perform manual keyboard, zoom/reflow, and screen-reader checks.
+- Deploy only with explicit user authorization.

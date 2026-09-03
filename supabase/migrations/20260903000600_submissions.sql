@@ -41,7 +41,7 @@ as $$
     select 1 from public.submissions s
     join public.cohort_items i on i.id = s.cohort_item_id
     where s.id = target_submission_id
-      and (public.owns_cohort(i.cohort_id) or public.is_active_student_in_cohort(i.cohort_id))
+      and (public.owns_cohort(i.cohort_id) or public.student_can_read_item(s.cohort_item_id))
   )
 $$;
 revoke all on function public.can_read_submission(uuid) from public;
@@ -57,7 +57,19 @@ using(exists(
   where v.id = submission_files.version_id and public.can_read_submission(v.submission_id)
 ));
 
-grant select on public.submissions, public.submission_versions, public.submission_files to authenticated;
+grant select on public.submissions, public.submission_versions to authenticated;
+
+create function public.can_read_submission_file(target_file_id uuid)
+returns boolean language sql stable security definer set search_path = ''
+as $$
+  select exists(
+    select 1 from public.submission_files f
+    join public.submission_versions v on v.id = f.version_id
+    where f.id = target_file_id and public.can_read_submission(v.submission_id)
+  )
+$$;
+revoke all on function public.can_read_submission_file(uuid) from public;
+grant execute on function public.can_read_submission_file(uuid) to authenticated;
 
 insert into storage.buckets(id, name, public, file_size_limit, allowed_mime_types)
 values('submissions', 'submissions', false, 26214400, array['application/pdf'])
@@ -124,10 +136,26 @@ grant execute on function public.finalize_submission(uuid, uuid, jsonb) to servi
 create function public.get_assignment_submissions(target_item_id uuid)
 returns jsonb language sql stable security definer set search_path = ''
 as $$
+  with target as (
+    select i.id, i.cohort_id, public.owns_cohort(i.cohort_id) as is_teacher
+    from public.cohort_items i where i.id = target_item_id and i.kind = 'assignment'
+  ), people as (
+    select s.id, s.student_id, p.display_name
+    from target t join public.submissions s on s.cohort_item_id = t.id
+    join public.profiles p on p.id = s.student_id
+    where t.is_teacher or public.student_can_read_item(t.id)
+    union all
+    select null::uuid, e.student_id, p.display_name
+    from target t join public.cohort_enrollments e on e.cohort_id = t.cohort_id and e.status = 'active'
+    join public.profiles p on p.id = e.student_id
+    where t.is_teacher and not exists(
+      select 1 from public.submissions s where s.cohort_item_id = t.id and s.student_id = e.student_id
+    )
+  )
   select coalesce(jsonb_agg(jsonb_build_object(
-    'id', s.id,
-    'studentId', s.student_id,
-    'studentName', coalesce(p.display_name, 'Student'),
+    'id', people.id,
+    'studentId', people.student_id,
+    'studentName', coalesce(people.display_name, 'Student'),
     'versions', (
       select coalesce(jsonb_agg(jsonb_build_object(
         'id', v.id, 'versionNumber', v.version_number, 'submittedAt', v.submitted_at,
@@ -138,14 +166,10 @@ as $$
           from public.submission_files f where f.version_id = v.id
         )
       ) order by v.version_number desc), '[]'::jsonb)
-      from public.submission_versions v where v.submission_id = s.id
+      from public.submission_versions v where v.submission_id = people.id
     )
-  ) order by coalesce(p.display_name, 'Student')), '[]'::jsonb)
-  from public.submissions s
-  join public.cohort_items i on i.id = s.cohort_item_id
-  join public.profiles p on p.id = s.student_id
-  where s.cohort_item_id = target_item_id
-    and (public.owns_cohort(i.cohort_id) or public.is_active_student_in_cohort(i.cohort_id))
+  ) order by coalesce(people.display_name, 'Student')), '[]'::jsonb)
+  from people
 $$;
 revoke all on function public.get_assignment_submissions(uuid) from public;
 grant execute on function public.get_assignment_submissions(uuid) to authenticated;

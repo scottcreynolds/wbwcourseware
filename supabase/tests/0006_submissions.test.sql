@@ -1,5 +1,5 @@
 begin;
-select plan(8);
+select plan(9);
 
 select has_table('public', 'submissions', 'submissions table exists');
 select has_table('public', 'submission_versions', 'submission versions table exists');
@@ -15,6 +15,7 @@ select function_privs_are(
   'public', 'finalize_submission', array['uuid','uuid','jsonb'], 'authenticated', array[]::text[],
   'authenticated cannot finalize directly'
 );
+select table_privs_are('public', 'submission_files', 'authenticated', array[]::text[], 'raw file table is not exposed');
 
 select * from finish();
 rollback;
