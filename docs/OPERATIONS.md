@@ -2,10 +2,14 @@
 
 ## Backup and restore drill
 
-1. Create an encrypted logical database backup with Supabase-supported `pg_dump` tooling.
+1. Create an encrypted logical database backup with Supabase-supported `pg_dump` tooling. For local
+   data-only restores, explicitly exclude `storage.*`; migrations recreate bucket configuration and
+   Storage objects are exported separately in the next step.
 2. Export private Storage objects through an authenticated administrative process; database backup alone does not contain submitted PDFs.
 3. Record migration commit, backup timestamp, object count, and byte total without student filenames.
 4. Restore database into an isolated temporary Supabase project.
+   After a data-only Auth restore, synchronize `auth.refresh_tokens_id_seq` to the maximum restored token
+   ID before testing login; COPY-based restores do not reliably advance this sequence.
 5. Restore Storage objects into private `submissions` bucket.
 6. Run `pnpm test:db`, then verify one course, cohort, invitation, submission version, announcement, and discussion.
 7. Confirm removed students remain denied and signed file downloads require authorization.

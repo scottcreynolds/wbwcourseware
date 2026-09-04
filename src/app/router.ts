@@ -114,7 +114,9 @@ router.beforeEach(async (to) => {
   return true
 })
 
-router.afterEach((to) => {
+router.afterEach((to, from) => {
   document.title = `${String(to.meta.title ?? 'Courseware')} · Writers Be Writing`
-  requestAnimationFrame(() => document.querySelector<HTMLElement>('#main-content')?.focus())
+  if (from.name) {
+    requestAnimationFrame(() => document.querySelector<HTMLElement>('#main-content')?.focus())
+  }
 })

@@ -2,14 +2,14 @@ project_id = "writers-be-writing-courseware"
 
 [api]
 enabled = true
-port = 54321
+port = 55321
 schemas = ["public", "graphql_public"]
 extra_search_path = ["public", "extensions"]
 max_rows = 1000
 
 [db]
-port = 54322
-shadow_port = 54320
+port = 55322
+shadow_port = 55320
 major_version = 17
 
 [db.seed]
@@ -18,11 +18,11 @@ sql_paths = ["./seed.sql"]
 
 [studio]
 enabled = true
-port = 54323
+port = 55323
 
 [inbucket]
 enabled = true
-port = 54324
+port = 55324
 
 [auth]
 enabled = true
@@ -32,7 +32,7 @@ jwt_expiry = 3600
 enable_signup = false
 
 [auth.email]
-enable_signup = false
+enable_signup = true
 double_confirm_changes = true
 enable_confirmations = true
 

@@ -4,4 +4,10 @@ create index if not exists cohort_items_due_idx on public.cohort_items(cohort_id
 create index if not exists cohort_enrollments_active_idx on public.cohort_enrollments(cohort_id, student_id) where status = 'active';
 create index if not exists cohort_invitations_teacher_rate_idx on public.cohort_invitations(invited_by, created_at desc);
 
-revoke all on function public.protect_discussion_identity() from public;
+revoke all on function public.protect_discussion_identity() from public, anon, authenticated;
+
+-- Supabase's default authenticated grants include non-DML table privileges.
+-- Keep profile reads behind RLS and submission file metadata reachable only
+-- through the explicitly authorized helper functions.
+revoke insert, update, delete, truncate, references, trigger on public.profiles from authenticated;
+revoke all on public.submission_files from authenticated;

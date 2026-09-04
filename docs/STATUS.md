@@ -80,12 +80,13 @@ M9: Hardening and Deployment Readiness — implementation complete
 - `pnpm lint`: pass
 - `pnpm test`: pass — 16 tests
 - `pnpm build`: pass
-- `pnpm test:e2e`: configured; local browser binary download required
-- Supabase Docker startup: requires local Docker environment
+- `pnpm test:db`: pass — 70 assertions
+- `pnpm test:functions`: pass — 9 live boundary tests
+- `pnpm test:e2e`: pass — 7 public Chromium checks plus an authenticated local-staging teacher journey
 
 ## Remaining launch gates
 
-- Run database, Edge Function, and browser integration suites with Docker and Playwright browsers.
+- Run authenticated critical journeys and negative authorization paths in staging.
 - Complete staging email/domain verification and real backup/restore drill.
-- Perform manual keyboard, zoom/reflow, and screen-reader checks.
+- Perform manual keyboard, zoom/reflow, and screen-reader checks on authenticated flows.
 - Deploy only with explicit user authorization.

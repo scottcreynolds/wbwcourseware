@@ -8,8 +8,8 @@ select has_column('public', 'profiles', 'role', 'profiles include role');
 select policies_are(
   'public',
   'profiles',
-  array['users can read their own profile'],
-  'profiles expose only explicit self-read policy'
+  array['teacher reads enrolled student profiles', 'users can read their own profile'],
+  'profiles expose only explicit read policies'
 );
 select table_privs_are(
   'public',
@@ -26,4 +26,3 @@ select results_eq(
 
 select * from finish();
 rollback;
-

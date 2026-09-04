@@ -20,7 +20,7 @@
     "supabase:stop": "supabase stop",
     "supabase:reset": "supabase db reset",
     "test:db": "supabase test db",
-    "test:functions": "vitest run tests/functions",
+    "test:functions": "vitest run --config vitest.functions.config.ts",
     "verify": "pnpm typecheck && pnpm lint && pnpm test && pnpm build"
   },
   "dependencies": {
@@ -35,11 +35,12 @@
     "zod": "^3.24.2"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
     "@eslint/js": "^9.22.0",
     "@playwright/test": "^1.51.1",
     "@tsconfig/node22": "^22.0.0",
-    "@types/node": "^22.13.10",
     "@types/markdown-it": "^14.1.2",
+    "@types/node": "^22.13.10",
     "@vitejs/plugin-vue": "^5.2.3",
     "@vitest/coverage-v8": "^3.0.8",
     "@vue/eslint-config-typescript": "^14.5.0",
@@ -48,8 +49,8 @@
     "eslint": "^9.22.0",
     "eslint-plugin-vue": "^10.0.0",
     "globals": "^16.0.0",
-    "jsdom": "^26.0.0",
     "jiti": "^2.6.1",
+    "jsdom": "^26.0.0",
     "supabase": "^2.20.12",
     "typescript": "~5.8.2",
     "typescript-eslint": "^8.26.0",

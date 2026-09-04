@@ -13,6 +13,10 @@ html {
   outline-offset: 3px;
 }
 
+.v-field-label {
+  opacity: 0.72 !important;
+}
+
 .skip-link {
   position: fixed;
   left: 1rem;
