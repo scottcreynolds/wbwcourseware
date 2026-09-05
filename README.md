@@ -61,10 +61,10 @@ Stop local services with `pnpm supabase:stop`.
 
 ## Bootstrap teacher
 
-After local Supabase starts, copy `supabase/.env.example` to `supabase/.env`, set a long random
-`BOOTSTRAP_TEACHER_SECRET`, and serve functions with that env file. Call `bootstrap-teacher` once
-using `POST`, header `x-bootstrap-secret`, and JSON body containing `email`, optional `displayName`,
-and optional `redirectTo`. Repeating same email is safe; a different second teacher is rejected.
+After local Supabase starts, copy `supabase/.env.example` to `supabase/.env`, set the bootstrap identity and
+long random `BOOTSTRAP_TEACHER_SECRET`, and serve functions with that env file. Run `pnpm bootstrap:teacher`
+and choose `local` or `production`; all values are read from the env files. Repeating the same email is safe;
+a different second teacher is rejected.
 
 Never place bootstrap secret in frontend environment variables or commit it.
 

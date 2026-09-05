@@ -19,6 +19,7 @@
     "supabase:start": "supabase start",
     "supabase:stop": "supabase stop",
     "supabase:reset": "supabase db reset",
+    "bootstrap:teacher": "node scripts/bootstrap-teacher.mjs",
     "test:db": "supabase test db",
     "test:functions": "vitest run --config vitest.functions.config.ts",
     "verify": "pnpm typecheck && pnpm lint && pnpm test && pnpm build"
