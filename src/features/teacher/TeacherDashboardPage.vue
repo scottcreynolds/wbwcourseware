@@ -1,22 +1,29 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { courseService } from '@/features/courses/courseService'
+import { cohortService } from '@/features/cohorts/cohortService'
 import type { Course } from '@/types/course'
+import type { Cohort } from '@/types/cohort'
 
 const router = useRouter()
 const courses = ref<Course[]>([])
+const cohorts = ref<Cohort[]>([])
 const loading = ref(true)
 const creating = ref(false)
 const createDialog = ref(false)
 const title = ref('')
 const errorMessage = ref<string | null>(null)
+const courseTitleById = computed(() => new Map(courses.value.map((course) => [course.id, course.title])))
+const activeCohorts = computed(() => cohorts.value.filter((cohort) => cohort.status === 'active'))
 
 async function load(): Promise<void> {
   loading.value = true
   errorMessage.value = null
   try {
-    courses.value = await courseService.listCourses()
+    const [courseResult, cohortResult] = await Promise.all([courseService.listCourses(), cohortService.listAll()])
+    courses.value = courseResult
+    cohorts.value = cohortResult
   } catch {
     errorMessage.value = 'Courses could not be loaded.'
   } finally {
@@ -44,6 +51,18 @@ onMounted(load)
 
 <template>
   <v-alert v-if="errorMessage" type="error" class="mb-4" role="alert">{{ errorMessage }}</v-alert>
+  <template v-if="!loading && activeCohorts.length">
+    <h2 class="mb-3">Active cohorts</h2>
+    <v-list border rounded class="mb-8">
+      <v-list-item
+        v-for="cohort in activeCohorts"
+        :key="cohort.id"
+        :to="`/teacher/cohorts/${cohort.id}`"
+        :title="cohort.title"
+        :subtitle="`${courseTitleById.get(cohort.course_id) ?? 'Unknown course'} · ${cohort.start_date}–${cohort.end_date}`"
+      />
+    </v-list>
+  </template>
   <div class="section-heading">
     <p>Build reusable curriculum, then create teaching cohorts from it.</p>
     <v-btn color="primary" @click="createDialog = true">Create course</v-btn>
