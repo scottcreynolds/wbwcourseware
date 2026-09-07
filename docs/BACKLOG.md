@@ -37,6 +37,14 @@
 - Student direct messaging
 - Rich editor
 
+## Known issues / tech debt
+
+- Student cohort page mounts `AnnouncementList` twice (standalone
+  most-recent card + full list in the Announcements tab), each with
+  its own 60s poll — duplicate queries against the same table while
+  a student is on the page. Harmless but wasteful; consolidate to a
+  shared fetch/cache if it becomes a real cost.
+
 ## Explicitly avoid until justified
 
 - Generic LMS standards
