@@ -1,8 +1,9 @@
 begin;
-select plan(10);
+select plan(11);
 select has_type('public','cohort_status','cohort status exists');
 select has_type('public','module_release_mode','release mode exists');
 select has_table('public','cohorts','cohorts exist');
+select has_column('public','cohorts','intro_markdown','cohorts have an intro markdown column');
 select has_table('public','cohort_modules','cohort modules exist');
 select has_table('public','cohort_items','cohort items exist');
 select has_table('public','cohort_module_items','cohort placements exist');
