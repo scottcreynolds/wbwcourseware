@@ -146,6 +146,10 @@ export const courseService = {
     const { error } = await supabase.from('course_items').update(values).eq('id', itemId)
     if (error) throw error
   },
+  async publishItem(itemId: string): Promise<void> {
+    const { error } = await supabase.from('course_items').update({ publication_status: 'published' }).eq('id', itemId)
+    if (error) throw error
+  },
   async deleteItem(itemId: string): Promise<void> {
     const { error } = await supabase.from('course_items').delete().eq('id', itemId)
     if (error) throw error

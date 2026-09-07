@@ -187,6 +187,10 @@ async function moveItemToModule(): Promise<void> {
   moveDialog.value = false
 }
 
+async function publishItem(item: CourseItem): Promise<void> {
+  await run(() => courseService.publishItem(item.id), `“${item.title}” published.`)
+}
+
 async function moveItem(moduleId: string, itemId: string, direction: -1 | 1): Promise<void> {
   const ordered = itemsFor(moduleId)
   const index = ordered.findIndex((item) => item.id === itemId)
@@ -262,9 +266,10 @@ onMounted(load)
               <v-list v-if="itemsFor(module.id).length">
                 <v-list-item v-for="(item, itemIndex) in itemsFor(module.id)" :key="item.id" :title="item.title">
                   <template #prepend><v-chip size="small" :color="item.kind === 'assignment' ? 'secondary' : undefined">{{ item.kind }}</v-chip></template>
-                  <v-list-item-subtitle>{{ item.publication_status }}</v-list-item-subtitle>
+                  <v-list-item-subtitle><v-chip size="x-small" :color="item.publication_status === 'published' ? 'success' : undefined" variant="tonal">{{ item.publication_status }}</v-chip></v-list-item-subtitle>
                   <template #append>
                     <div class="row-actions">
+                      <v-btn v-if="item.publication_status === 'draft'" size="small" color="primary" variant="tonal" :loading="saving" @click="publishItem(item)">Publish</v-btn>
                       <v-tooltip text="Move up">
                         <template #activator="{ props: tooltipProps }"><v-btn v-bind="tooltipProps" icon="mdi-arrow-up" size="small" variant="text" :disabled="itemIndex === 0" aria-label="Move up" @click="moveItem(module.id, item.id, -1)" /></template>
                       </v-tooltip>
