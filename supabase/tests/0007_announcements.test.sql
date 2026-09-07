@@ -1,5 +1,5 @@
 begin;
-select plan(7);
+select plan(9);
 select has_table('public', 'announcements', 'announcements table exists');
 select has_table('public', 'announcement_deliveries', 'deliveries table exists');
 select col_has_check('public', 'announcements', 'title', 'announcement title constrained');
@@ -7,5 +7,7 @@ select col_is_unique('public', 'announcement_deliveries', array['announcement_id
 select isnt_empty($$select 1 from pg_policies where tablename='announcements' and policyname='student reads published announcements'$$, 'published student policy exists');
 select function_privs_are('public', 'prepare_announcement_publication', array['uuid','uuid'], 'authenticated', array[]::text[], 'publication RPC is private');
 select has_index('public', 'announcement_deliveries', 'announcement_deliveries_status_idx', 'delivery status indexed');
+select has_trigger('public', 'announcements', 'protect_announcement_publication_state', 'publication state is guarded by trigger');
+select isnt_empty($$select 1 from pg_policies where tablename='announcements' and policyname='teacher manages announcements' and cmd='ALL' and qual='owns_cohort(cohort_id)'$$, 'teacher can manage announcements at any status');
 select * from finish();
 rollback;

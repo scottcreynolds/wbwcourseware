@@ -17,6 +17,10 @@ const loading = ref(true)
 const refreshing = ref(false)
 const saving = ref(false)
 const message = ref<string | null>(null)
+const editDialog = ref(false)
+const editingId = ref('')
+const editingTitle = ref('')
+const editingBody = ref('')
 let refreshTimer: ReturnType<typeof setInterval> | undefined
 
 async function refresh(): Promise<void> {
@@ -54,6 +58,33 @@ async function publish(id: string): Promise<void> {
   saving.value = true
   try { await announcementService.publish(id); message.value = 'Announcement published.'; await refresh() }
   catch { message.value = 'Announcement could not be published.' }
+  finally { saving.value = false }
+}
+
+function openEdit(announcement: Announcement): void {
+  editingId.value = announcement.id
+  editingTitle.value = announcement.title
+  editingBody.value = announcement.body_markdown
+  editDialog.value = true
+}
+
+async function saveEdit(): Promise<void> {
+  if (!editingTitle.value.trim()) { message.value = 'Title is required.'; return }
+  saving.value = true
+  try {
+    await announcementService.update(editingId.value, editingTitle.value.trim(), editingBody.value)
+    editDialog.value = false
+    message.value = 'Announcement updated.'
+    await refresh()
+  } catch { message.value = 'Announcement could not be updated.' }
+  finally { saving.value = false }
+}
+
+async function remove(id: string): Promise<void> {
+  if (!window.confirm('Delete this announcement? This cannot be undone.')) return
+  saving.value = true
+  try { await announcementService.remove(id); message.value = 'Announcement deleted.'; await refresh() }
+  catch { message.value = 'Announcement could not be deleted.' }
   finally { saving.value = false }
 }
 
@@ -108,7 +139,24 @@ onUnmounted(() => { if (refreshTimer) clearInterval(refreshTimer) })
       <v-card-actions v-if="teacher">
         <span v-if="announcement.status === 'published'" class="text-medium-emphasis">{{ deliverySummary(announcement) }}</span>
         <v-btn v-else color="primary" :loading="saving" @click="publish(announcement.id)">Publish now</v-btn>
+        <v-spacer />
+        <v-btn variant="text" @click="openEdit(announcement)">Edit</v-btn>
+        <v-btn color="error" variant="text" @click="remove(announcement.id)">Delete</v-btn>
       </v-card-actions>
     </v-card>
+    <v-dialog v-model="editDialog" max-width="36rem">
+      <v-card title="Edit announcement">
+        <v-card-text>
+          <v-text-field v-model="editingTitle" label="Title" maxlength="200" autofocus />
+          <v-textarea v-model="editingBody" label="Message (Markdown)" rows="6" />
+          <MarkdownContent :source="editingBody" />
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer />
+          <v-btn @click="editDialog = false">Cancel</v-btn>
+          <v-btn color="primary" :loading="saving" :disabled="!editingTitle.trim()" @click="saveEdit">Save</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </section>
 </template>

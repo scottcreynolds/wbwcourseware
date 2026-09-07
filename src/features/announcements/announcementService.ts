@@ -30,4 +30,16 @@ export const announcementService = {
     })
     if (error) throw error
   },
+
+  async update(announcementId: string, title: string, bodyMarkdown: string): Promise<void> {
+    const { error } = await supabase.from('announcements')
+      .update({ title, body_markdown: bodyMarkdown })
+      .eq('id', announcementId)
+    if (error) throw error
+  },
+
+  async remove(announcementId: string): Promise<void> {
+    const { error } = await supabase.from('announcements').delete().eq('id', announcementId)
+    if (error) throw error
+  },
 }
