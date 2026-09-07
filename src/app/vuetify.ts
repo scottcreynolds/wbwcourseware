@@ -7,7 +7,7 @@ export const vuetify = createVuetify({
       writersBeWriting: {
         dark: false,
         colors: {
-          primary: '#4f355f',
+          primary: '#1565c0',
           secondary: '#9b5c42',
           background: '#f7f4ef',
           surface: '#ffffff',

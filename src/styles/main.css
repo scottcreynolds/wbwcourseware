@@ -17,6 +17,16 @@ html {
   opacity: 0.72 !important;
 }
 
+.v-list-item {
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+}
+.v-list-item:last-child {
+  border-bottom: none;
+}
+.v-list-item:nth-of-type(even) {
+  background: rgba(0, 0, 0, 0.03);
+}
+
 .skip-link {
   position: fixed;
   left: 1rem;
@@ -97,6 +107,9 @@ html {
 .editor-meta-grid { align-items: start; }
 .editor-meta-grid > * { flex: 1 1 12rem; }
 .outline-item-row { display: grid; grid-template-columns: 10rem 1fr; gap: 0.75rem; }
+.topic-summary { display: flex; flex-direction: column; gap: 0.15rem; text-align: left; }
+.topic-summary-title { font-weight: 600; }
+.topic-summary-meta { font-size: 0.85rem; }
 .monospace-input textarea { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
 .markdown-content { line-height: 1.65; }
 .markdown-content :is(p, ul, ol, blockquote, pre, table) { margin-block: 0 1em; }
