@@ -1,22 +1,36 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { onMounted, onUnmounted, ref } from 'vue'
 import { announcementService } from '@/features/announcements/announcementService'
 import MarkdownContent from '@/shared/MarkdownContent.vue'
 import type { Announcement } from '@/types/announcement'
+
+const REFRESH_INTERVAL_MS = 60_000
 
 const props = defineProps<{ cohortId: string; teacher?: boolean }>()
 const announcements = ref<Announcement[]>([])
 const title = ref('')
 const body = ref('')
 const loading = ref(true)
+const refreshing = ref(false)
 const saving = ref(false)
 const message = ref<string | null>(null)
+let refreshTimer: ReturnType<typeof setInterval> | undefined
+
+async function refresh(): Promise<void> {
+  try { announcements.value = await announcementService.list(props.cohortId) }
+  catch { message.value = 'Announcements could not be loaded.' }
+}
 
 async function load(): Promise<void> {
   loading.value = true
-  try { announcements.value = await announcementService.list(props.cohortId) }
-  catch { message.value = 'Announcements could not be loaded.' }
-  finally { loading.value = false }
+  await refresh()
+  loading.value = false
+}
+
+async function manualRefresh(): Promise<void> {
+  refreshing.value = true
+  await refresh()
+  refreshing.value = false
 }
 
 async function create(publish: boolean): Promise<void> {
@@ -28,14 +42,14 @@ async function create(publish: boolean): Promise<void> {
     title.value = ''
     body.value = ''
     message.value = publish ? 'Announcement published.' : 'Draft saved.'
-    await load()
+    await refresh()
   } catch { message.value = 'Announcement could not be saved.' }
   finally { saving.value = false }
 }
 
 async function publish(id: string): Promise<void> {
   saving.value = true
-  try { await announcementService.publish(id); message.value = 'Announcement published.'; await load() }
+  try { await announcementService.publish(id); message.value = 'Announcement published.'; await refresh() }
   catch { message.value = 'Announcement could not be published.' }
   finally { saving.value = false }
 }
@@ -47,12 +61,28 @@ function deliverySummary(announcement: Announcement): string {
   return `${sent} sent${failed ? ` · ${failed} failed` : ''}`
 }
 
-onMounted(load)
+onMounted(() => {
+  void load()
+  refreshTimer = setInterval(() => { void refresh() }, REFRESH_INTERVAL_MS)
+})
+onUnmounted(() => { if (refreshTimer) clearInterval(refreshTimer) })
 </script>
 
 <template>
   <section aria-labelledby="announcements-heading">
-    <h2 id="announcements-heading" class="mb-3">Announcements</h2>
+    <div class="section-heading mb-3">
+      <h2 id="announcements-heading">Announcements</h2>
+      <v-btn
+        variant="text"
+        size="small"
+        prepend-icon="mdi-refresh"
+        :loading="refreshing"
+        aria-label="Refresh announcements"
+        @click="manualRefresh"
+      >
+        Refresh
+      </v-btn>
+    </div>
     <v-alert v-if="message" type="info" class="mb-3">{{ message }}</v-alert>
     <v-card v-if="teacher" border class="mb-4">
       <v-card-title>New announcement</v-card-title>

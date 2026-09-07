@@ -1,9 +1,11 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { onMounted, onUnmounted, ref } from 'vue'
 import { useAuthStore } from '@/features/auth/authStore'
 import { discussionService } from '@/features/discussions/discussionService'
 import MarkdownContent from '@/shared/MarkdownContent.vue'
 import type { DiscussionReply, DiscussionTopic } from '@/types/discussion'
+
+const REFRESH_INTERVAL_MS = 60_000
 
 const props = defineProps<{ cohortId: string; teacher?: boolean }>()
 const auth = useAuthStore()
@@ -13,47 +15,73 @@ const body = ref('')
 const replyDrafts = ref<Record<string, string>>({})
 const message = ref<string | null>(null)
 const loading = ref(true)
+const refreshing = ref(false)
+let refreshTimer: ReturnType<typeof setInterval> | undefined
 
 function canManage(entry: DiscussionReply): boolean { return Boolean(props.teacher || entry.authorId === auth.profile?.id) }
-async function load(): Promise<void> {
-  loading.value = true
+async function refresh(): Promise<void> {
   try { topics.value = await discussionService.list(props.cohortId) }
   catch { message.value = 'Discussions could not be loaded.' }
-  finally { loading.value = false }
+}
+async function load(): Promise<void> {
+  loading.value = true
+  await refresh()
+  loading.value = false
+}
+async function manualRefresh(): Promise<void> {
+  refreshing.value = true
+  await refresh()
+  refreshing.value = false
 }
 async function createTopic(): Promise<void> {
   if (!title.value.trim() || !body.value.trim()) { message.value = 'Title and message are required.'; return }
-  try { await discussionService.createTopic(props.cohortId, title.value.trim(), body.value); title.value = ''; body.value = ''; await load() }
+  try { await discussionService.createTopic(props.cohortId, title.value.trim(), body.value); title.value = ''; body.value = ''; await refresh() }
   catch { message.value = 'Topic could not be created.' }
 }
 async function reply(topicId: string): Promise<void> {
   const value = replyDrafts.value[topicId]?.trim()
   if (!value) return
-  try { await discussionService.createReply(topicId, value); replyDrafts.value[topicId] = ''; await load() }
+  try { await discussionService.createReply(topicId, value); replyDrafts.value[topicId] = ''; await refresh() }
   catch { message.value = 'Reply could not be posted.' }
 }
 async function editTopic(topic: DiscussionTopic): Promise<void> {
   const next = window.prompt('Edit topic message', topic.bodyMarkdown)
   if (next === null || !next.trim()) return
-  await discussionService.updateTopic(topic.id, topic.title, next); await load()
+  await discussionService.updateTopic(topic.id, topic.title, next); await refresh()
 }
 async function editReply(reply: DiscussionReply): Promise<void> {
   const next = window.prompt('Edit reply', reply.bodyMarkdown)
   if (next === null || !next.trim()) return
-  await discussionService.updateReply(reply.id, next); await load()
+  await discussionService.updateReply(reply.id, next); await refresh()
 }
 async function remove(kind: 'topic' | 'reply', id: string): Promise<void> {
   if (!window.confirm('Delete this discussion content?')) return
   if (kind === 'topic') await discussionService.deleteTopic(id)
   else await discussionService.deleteReply(id)
-  await load()
+  await refresh()
 }
-onMounted(load)
+onMounted(() => {
+  void load()
+  refreshTimer = setInterval(() => { void refresh() }, REFRESH_INTERVAL_MS)
+})
+onUnmounted(() => { if (refreshTimer) clearInterval(refreshTimer) })
 </script>
 
 <template>
   <section aria-labelledby="discussion-heading">
-    <h2 id="discussion-heading" class="mb-3">Discussion</h2>
+    <div class="section-heading mb-3">
+      <h2 id="discussion-heading">Discussion</h2>
+      <v-btn
+        variant="text"
+        size="small"
+        prepend-icon="mdi-refresh"
+        :loading="refreshing"
+        aria-label="Refresh discussion"
+        @click="manualRefresh"
+      >
+        Refresh
+      </v-btn>
+    </div>
     <v-alert v-if="message" type="info" class="mb-3">{{ message }}</v-alert>
     <v-card border class="mb-4">
       <v-card-title>Start a topic</v-card-title>
