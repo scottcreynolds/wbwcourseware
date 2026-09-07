@@ -16,6 +16,7 @@ const replyDrafts = ref<Record<string, string>>({})
 const message = ref<string | null>(null)
 const loading = ref(true)
 const refreshing = ref(false)
+const newTopicDialog = ref(false)
 let refreshTimer: ReturnType<typeof setInterval> | undefined
 
 function canManage(entry: DiscussionReply): boolean { return Boolean(props.teacher || entry.authorId === auth.profile?.id) }
@@ -35,8 +36,13 @@ async function manualRefresh(): Promise<void> {
 }
 async function createTopic(): Promise<void> {
   if (!title.value.trim() || !body.value.trim()) { message.value = 'Title and message are required.'; return }
-  try { await discussionService.createTopic(props.cohortId, title.value.trim(), body.value); title.value = ''; body.value = ''; await refresh() }
-  catch { message.value = 'Topic could not be created.' }
+  try {
+    await discussionService.createTopic(props.cohortId, title.value.trim(), body.value)
+    title.value = ''
+    body.value = ''
+    newTopicDialog.value = false
+    await refresh()
+  } catch { message.value = 'Topic could not be created.' }
 }
 async function reply(topicId: string): Promise<void> {
   const value = replyDrafts.value[topicId]?.trim()
@@ -71,23 +77,21 @@ onUnmounted(() => { if (refreshTimer) clearInterval(refreshTimer) })
   <section aria-labelledby="discussion-heading">
     <div class="section-heading mb-3">
       <h2 id="discussion-heading">Discussion</h2>
-      <v-btn
-        variant="text"
-        size="small"
-        prepend-icon="mdi-refresh"
-        :loading="refreshing"
-        aria-label="Refresh discussion"
-        @click="manualRefresh"
-      >
-        Refresh
-      </v-btn>
+      <div class="row-actions">
+        <v-btn
+          variant="text"
+          size="small"
+          prepend-icon="mdi-refresh"
+          :loading="refreshing"
+          aria-label="Refresh discussion"
+          @click="manualRefresh"
+        >
+          Refresh
+        </v-btn>
+        <v-btn color="primary" size="small" prepend-icon="mdi-plus" @click="newTopicDialog = true">Start a discussion</v-btn>
+      </div>
     </div>
     <v-alert v-if="message" type="info" class="mb-3">{{ message }}</v-alert>
-    <v-card border class="mb-4">
-      <v-card-title>Start a topic</v-card-title>
-      <v-card-text><v-text-field v-model="title" label="Topic title" maxlength="200" /><v-textarea v-model="body" label="Message (Markdown)" rows="4" /></v-card-text>
-      <v-card-actions><v-btn color="primary" @click="createTopic">Post topic</v-btn></v-card-actions>
-    </v-card>
     <v-skeleton-loader v-if="loading" type="article@2" />
     <v-empty-state v-else-if="!topics.length" headline="No discussion topics" />
     <v-card v-for="topic in topics" v-else :key="topic.id" border class="mb-4">
@@ -102,5 +106,19 @@ onUnmounted(() => { if (refreshTimer) clearInterval(refreshTimer) })
       </template>
       <v-card-text v-else class="text-medium-emphasis">Topic deleted.</v-card-text>
     </v-card>
+    <v-dialog v-model="newTopicDialog" max-width="36rem">
+      <v-card title="Start a discussion">
+        <v-card-text>
+          <v-text-field v-model="title" label="Topic title" maxlength="200" autofocus />
+          <v-textarea v-model="body" label="Message (Markdown)" rows="6" />
+          <MarkdownContent :source="body" />
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer />
+          <v-btn @click="newTopicDialog = false">Cancel</v-btn>
+          <v-btn color="primary" :disabled="!title.trim() || !body.trim()" @click="createTopic">Post topic</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </section>
 </template>

@@ -1,13 +1,16 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { announcementService } from '@/features/announcements/announcementService'
 import MarkdownContent from '@/shared/MarkdownContent.vue'
 import type { Announcement } from '@/types/announcement'
 
 const REFRESH_INTERVAL_MS = 60_000
 
-const props = defineProps<{ cohortId: string; teacher?: boolean }>()
+const props = defineProps<{ cohortId: string; teacher?: boolean; mostRecentOnly?: boolean }>()
 const announcements = ref<Announcement[]>([])
+const visibleAnnouncements = computed(() =>
+  props.mostRecentOnly ? announcements.value.slice(0, 1) : announcements.value,
+)
 const title = ref('')
 const body = ref('')
 const loading = ref(true)
@@ -70,7 +73,7 @@ onUnmounted(() => { if (refreshTimer) clearInterval(refreshTimer) })
 
 <template>
   <section aria-labelledby="announcements-heading">
-    <div class="section-heading mb-3">
+    <div v-if="!mostRecentOnly" class="section-heading mb-3">
       <h2 id="announcements-heading">Announcements</h2>
       <v-btn
         variant="text"
@@ -84,7 +87,7 @@ onUnmounted(() => { if (refreshTimer) clearInterval(refreshTimer) })
       </v-btn>
     </div>
     <v-alert v-if="message" type="info" class="mb-3">{{ message }}</v-alert>
-    <v-card v-if="teacher" border class="mb-4">
+    <v-card v-if="teacher && !mostRecentOnly" border class="mb-4">
       <v-card-title>New announcement</v-card-title>
       <v-card-text>
         <v-text-field v-model="title" label="Title" maxlength="200" />
@@ -96,9 +99,9 @@ onUnmounted(() => { if (refreshTimer) clearInterval(refreshTimer) })
         <v-btn color="primary" :loading="saving" @click="create(true)">Publish now</v-btn>
       </v-card-actions>
     </v-card>
-    <v-skeleton-loader v-if="loading" type="article@2" />
-    <v-empty-state v-else-if="!announcements.length" headline="No announcements" />
-    <v-card v-for="announcement in announcements" v-else :key="announcement.id" border class="mb-3">
+    <v-skeleton-loader v-if="loading" :type="mostRecentOnly ? 'article' : 'article@2'" />
+    <v-empty-state v-else-if="!visibleAnnouncements.length && !mostRecentOnly" headline="No announcements" />
+    <v-card v-for="announcement in visibleAnnouncements" :key="announcement.id" border class="mb-3">
       <v-card-title>{{ announcement.title }}</v-card-title>
       <v-card-subtitle>{{ announcement.status }} · {{ new Date(announcement.published_at ?? announcement.created_at).toLocaleString() }}</v-card-subtitle>
       <v-card-text><MarkdownContent :source="announcement.body_markdown" /></v-card-text>
