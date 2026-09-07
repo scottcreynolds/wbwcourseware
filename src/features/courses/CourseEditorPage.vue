@@ -59,6 +59,10 @@ function placementCount(itemId: string): number {
   return workspace.value?.placements.filter((placement) => placement.item_id === itemId).length ?? 0
 }
 
+function moduleOnlyItems(moduleId: string): CourseItem[] {
+  return itemsFor(moduleId).filter((item) => placementCount(item.id) <= 1)
+}
+
 async function refresh(): Promise<void> {
   errorMessage.value = null
   try {
@@ -115,7 +119,7 @@ async function updateModule(): Promise<void> {
 }
 
 async function deleteModule(module: CourseModule): Promise<void> {
-  if (!window.confirm(`Delete module “${module.title}”? Items linked only here must be moved or deleted first.`)) return
+  if (!window.confirm(`Delete module “${module.title}”?`)) return
   await run(() => courseService.deleteModule(module.id), 'Module deleted.')
 }
 
@@ -226,7 +230,9 @@ onMounted(load)
                 <v-btn size="small" @click="openEditModule(module)">Rename</v-btn>
                 <v-btn size="small" @click="openItemDialog(module.id)">Add item</v-btn>
                 <v-btn size="small" :disabled="linkableItems(module.id).length === 0" @click="openLinkDialog(module.id)">Link existing</v-btn>
-                <v-btn size="small" color="error" variant="text" @click="deleteModule(module)">Delete module</v-btn>
+                <v-tooltip :text="moduleOnlyItems(module.id).length ? `Move or delete first: ${moduleOnlyItems(module.id).map(item => item.title).join(', ')}` : 'Delete module'">
+                  <template #activator="{ props: tooltipProps }"><v-btn v-bind="tooltipProps" size="small" color="error" variant="text" :disabled="moduleOnlyItems(module.id).length > 0" @click="deleteModule(module)">Delete module</v-btn></template>
+                </v-tooltip>
               </div>
               <v-list v-if="itemsFor(module.id).length">
                 <v-list-item v-for="(item, itemIndex) in itemsFor(module.id)" :key="item.id" :title="item.title">
