@@ -36,17 +36,24 @@ export const useAuthStore = defineStore('auth', () => {
 
   async function initialize(): Promise<void> {
     if (initialization) return initialization
-    initialization = (async () => {
+    initialization = new Promise<void>((resolve, reject) => {
+      let settled = false
       try {
-        await loadIdentity(await authService.getSession())
         unsubscribe ??= authService.onAuthStateChange((_event, nextSession) => {
-          void loadIdentity(nextSession)
+          void loadIdentity(nextSession).finally(() => {
+            if (!settled) {
+              settled = true
+              resolve()
+            }
+          })
         })
-      } catch {
-        status.value = 'error'
-        error.value = 'Authentication could not be initialized.'
+      } catch (subscribeError) {
+        reject(subscribeError)
       }
-    })()
+    }).catch(() => {
+      status.value = 'error'
+      error.value = 'Authentication could not be initialized.'
+    })
     return initialization
   }
 
