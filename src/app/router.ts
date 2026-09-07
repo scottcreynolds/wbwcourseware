@@ -1,12 +1,12 @@
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
-import { canAccessRole } from '@/features/auth/authRules'
+import { canAccessRole, homeForRole } from '@/features/auth/authRules'
 import { useAuthStore } from '@/features/auth/authStore'
 
 export const routes: RouteRecordRaw[] = [
   {
     path: '/',
     name: 'home',
-    component: () => import('@/features/home/HomePage.vue'),
+    redirect: { name: 'login' },
     meta: { title: 'Courseware' },
   },
   {
@@ -103,6 +103,12 @@ export const router = createRouter({
 })
 
 router.beforeEach(async (to) => {
+  if (to.name === 'home') {
+    const auth = useAuthStore()
+    await auth.initialize()
+    return auth.isAuthenticated && auth.profile ? homeForRole(auth.profile.role) : { name: 'login' }
+  }
+
   if (!to.meta.requiresAuth) return true
 
   const auth = useAuthStore()
