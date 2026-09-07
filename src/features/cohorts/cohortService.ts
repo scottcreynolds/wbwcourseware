@@ -10,5 +10,6 @@ export const cohortService = {
   async updateModule(id:string,values:{release_mode:ReleaseMode;release_at:string|null;manually_released_at:string|null}):Promise<void>{const {error}=await supabase.from('cohort_modules').update(values).eq('id',id);if(error)throw error},
   async updateDueDate(id:string,dueAt:string|null):Promise<void>{const {error}=await supabase.from('cohort_items').update({due_at:dueAt}).eq('id',id);if(error)throw error},
   async syncItem(sourceItemId:string,cohortIds:string[]):Promise<number>{const {data,error}=await supabase.rpc('sync_course_item_to_cohorts',{target_source_item_id:sourceItemId,target_cohort_ids:cohortIds});if(error)throw error;return data as number},
+  async syncNewContent(courseId:string,cohortIds:string[]):Promise<number>{const {data,error}=await supabase.rpc('sync_new_course_content_to_cohorts',{target_course_id:courseId,target_cohort_ids:cohortIds});if(error)throw error;return data as number},
 }
 
