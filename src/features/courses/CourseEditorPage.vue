@@ -54,17 +54,24 @@ function linkableItems(moduleId: string): CourseItem[] {
   return workspace.value?.items.filter((item) => !present.has(item.id)) ?? []
 }
 
-async function load(): Promise<void> {
-  loading.value = true
+function placementCount(itemId: string): number {
+  return workspace.value?.placements.filter((placement) => placement.item_id === itemId).length ?? 0
+}
+
+async function refresh(): Promise<void> {
   errorMessage.value = null
   try {
     workspace.value = await courseService.loadWorkspace(courseId)
     cohorts.value = await cohortService.listForCourse(courseId)
   } catch {
     errorMessage.value = 'Course could not be loaded or you do not have access.'
-  } finally {
-    loading.value = false
   }
+}
+
+async function load(): Promise<void> {
+  loading.value = true
+  await refresh()
+  loading.value = false
 }
 
 async function run(action: () => Promise<void>, success: string): Promise<void> {
@@ -72,7 +79,7 @@ async function run(action: () => Promise<void>, success: string): Promise<void> 
   errorMessage.value = null
   try {
     await action()
-    await load()
+    await refresh()
     notice.value = success
   } catch (error) {
     errorMessage.value = error instanceof Error ? error.message : 'Change could not be saved.'
@@ -160,7 +167,17 @@ async function moveItem(moduleId: string, itemId: string, direction: -1 | 1): Pr
 }
 
 async function removePlacement(moduleId: string, itemId: string): Promise<void> {
-  await run(() => courseService.removePlacement(moduleId, itemId), 'Item removed from module.')
+  saving.value = true
+  errorMessage.value = null
+  try {
+    await courseService.removePlacement(moduleId, itemId)
+    await refresh()
+    notice.value = 'Item removed from module.'
+  } catch {
+    errorMessage.value = 'Item must remain in at least one module. Add it elsewhere before removing this placement.'
+  } finally {
+    saving.value = false
+  }
 }
 
 async function importOutline(): Promise<void> {
@@ -219,8 +236,8 @@ onMounted(load)
                   <v-tooltip text="Edit">
                     <template #activator="{ props: tooltipProps }"><v-btn v-bind="tooltipProps" icon="mdi-pencil-outline" size="small" variant="text" :to="`/teacher/courses/${courseId}/items/${item.id}`" aria-label="Edit" /></template>
                   </v-tooltip>
-                  <v-tooltip text="Remove from module">
-                    <template #activator="{ props: tooltipProps }"><v-btn v-bind="tooltipProps" icon="mdi-link-off" size="small" variant="text" aria-label="Remove from module" @click="removePlacement(module.id, item.id)" /></template>
+                  <v-tooltip :text="placementCount(item.id) > 1 ? 'Remove from module' : 'Item must remain in at least one module'">
+                    <template #activator="{ props: tooltipProps }"><v-btn v-bind="tooltipProps" icon="mdi-link-off" size="small" variant="text" :disabled="placementCount(item.id) <= 1" aria-label="Remove from module" @click="removePlacement(module.id, item.id)" /></template>
                   </v-tooltip>
                 </div>
               </template>
