@@ -16,6 +16,7 @@ const loading = ref(true)
 const saving = ref(false)
 const errorMessage = ref<string | null>(null)
 const notice = ref<string | null>(null)
+const activeTab = ref('modules')
 const moduleDialog = ref(false)
 const moduleTitle = ref('')
 const editModuleDialog = ref(false)
@@ -195,7 +196,7 @@ onMounted(load)
   <v-alert v-if="errorMessage" type="error" class="mb-4" role="alert">{{ errorMessage }}</v-alert>
   <v-skeleton-loader v-if="loading" type="article, list-item-three-line@2" />
   <template v-else-if="workspace">
-    <div class="section-heading mb-4"><v-btn to="/teacher" variant="text" prepend-icon="mdi-arrow-left">All courses</v-btn><v-btn color="primary" @click="cohortDialog=true">Create cohort</v-btn></div>
+    <div class="section-heading mb-4"><v-btn to="/teacher" variant="text" prepend-icon="mdi-arrow-left">All courses</v-btn></div>
     <v-card border class="mb-6">
       <v-card-title>Course details</v-card-title>
       <v-card-text>
@@ -205,49 +206,64 @@ onMounted(load)
       </v-card-text>
       <v-card-actions><v-btn color="primary" :loading="saving" @click="saveCourse">Save course</v-btn></v-card-actions>
     </v-card>
-    <div class="section-heading mb-4">
-      <h2>Modules</h2>
-      <div class="actions compact-actions"><v-btn variant="outlined" @click="outlineDialog = true">Import outline</v-btn><v-btn color="primary" @click="moduleDialog = true">Add module</v-btn></div>
-    </div>
-    <v-empty-state v-if="workspace.modules.length === 0" headline="No modules yet" text="Add one module or import your whole outline." />
-    <v-expansion-panels v-else multiple>
-      <v-expansion-panel v-for="(module, moduleIndex) in workspace.modules" :key="module.id" :title="module.title">
-        <v-expansion-panel-text>
-          <div class="row-actions mb-3">
-            <v-btn size="small" :disabled="moduleIndex === 0" @click="moveModule(module, -1)">Move up</v-btn>
-            <v-btn size="small" :disabled="moduleIndex === workspace.modules.length - 1" @click="moveModule(module, 1)">Move down</v-btn>
-            <v-btn size="small" @click="openEditModule(module)">Rename</v-btn>
-            <v-btn size="small" @click="openItemDialog(module.id)">Add item</v-btn>
-            <v-btn size="small" :disabled="linkableItems(module.id).length === 0" @click="openLinkDialog(module.id)">Link existing</v-btn>
-            <v-btn size="small" color="error" variant="text" @click="deleteModule(module)">Delete module</v-btn>
-          </div>
-          <v-list v-if="itemsFor(module.id).length">
-            <v-list-item v-for="(item, itemIndex) in itemsFor(module.id)" :key="item.id" :title="item.title">
-              <template #prepend><v-chip size="small" :color="item.kind === 'assignment' ? 'secondary' : undefined">{{ item.kind }}</v-chip></template>
-              <v-list-item-subtitle>{{ item.publication_status }}</v-list-item-subtitle>
-              <template #append>
-                <div class="row-actions">
-                  <v-tooltip text="Move up">
-                    <template #activator="{ props: tooltipProps }"><v-btn v-bind="tooltipProps" icon="mdi-arrow-up" size="small" variant="text" :disabled="itemIndex === 0" aria-label="Move up" @click="moveItem(module.id, item.id, -1)" /></template>
-                  </v-tooltip>
-                  <v-tooltip text="Move down">
-                    <template #activator="{ props: tooltipProps }"><v-btn v-bind="tooltipProps" icon="mdi-arrow-down" size="small" variant="text" :disabled="itemIndex === itemsFor(module.id).length - 1" aria-label="Move down" @click="moveItem(module.id, item.id, 1)" /></template>
-                  </v-tooltip>
-                  <v-tooltip text="Edit">
-                    <template #activator="{ props: tooltipProps }"><v-btn v-bind="tooltipProps" icon="mdi-pencil-outline" size="small" variant="text" :to="`/teacher/courses/${courseId}/items/${item.id}`" aria-label="Edit" /></template>
-                  </v-tooltip>
-                  <v-tooltip :text="placementCount(item.id) > 1 ? 'Remove from module' : 'Item must remain in at least one module'">
-                    <template #activator="{ props: tooltipProps }"><v-btn v-bind="tooltipProps" icon="mdi-link-off" size="small" variant="text" :disabled="placementCount(item.id) <= 1" aria-label="Remove from module" @click="removePlacement(module.id, item.id)" /></template>
-                  </v-tooltip>
-                </div>
-              </template>
-            </v-list-item>
-          </v-list>
-          <p v-else class="text-medium-emphasis">No curriculum items in this module.</p>
-        </v-expansion-panel-text>
-      </v-expansion-panel>
-    </v-expansion-panels>
-    <h2 class="mt-8 mb-3">Cohorts</h2><v-list v-if="cohorts.length" lines="two"><v-list-item v-for="cohort in cohorts" :key="cohort.id" :to="`/teacher/cohorts/${cohort.id}`" :title="cohort.title" :subtitle="`${cohort.start_date}–${cohort.end_date} · ${cohort.status}`" /></v-list><p v-else>No cohorts created from this course.</p>
+    <v-tabs v-model="activeTab" class="mb-4">
+      <v-tab value="modules">Modules</v-tab>
+      <v-tab value="cohorts">Cohorts</v-tab>
+    </v-tabs>
+    <v-window v-model="activeTab">
+      <v-window-item value="modules">
+        <div class="section-heading mb-4">
+          <h2>Modules</h2>
+          <div class="actions compact-actions"><v-btn variant="outlined" @click="outlineDialog = true">Import outline</v-btn><v-btn color="primary" @click="moduleDialog = true">Add module</v-btn></div>
+        </div>
+        <v-empty-state v-if="workspace.modules.length === 0" headline="No modules yet" text="Add one module or import your whole outline." />
+        <v-expansion-panels v-else multiple>
+          <v-expansion-panel v-for="(module, moduleIndex) in workspace.modules" :key="module.id" :title="module.title">
+            <v-expansion-panel-text>
+              <div class="row-actions mb-3">
+                <v-btn size="small" :disabled="moduleIndex === 0" @click="moveModule(module, -1)">Move up</v-btn>
+                <v-btn size="small" :disabled="moduleIndex === workspace.modules.length - 1" @click="moveModule(module, 1)">Move down</v-btn>
+                <v-btn size="small" @click="openEditModule(module)">Rename</v-btn>
+                <v-btn size="small" @click="openItemDialog(module.id)">Add item</v-btn>
+                <v-btn size="small" :disabled="linkableItems(module.id).length === 0" @click="openLinkDialog(module.id)">Link existing</v-btn>
+                <v-btn size="small" color="error" variant="text" @click="deleteModule(module)">Delete module</v-btn>
+              </div>
+              <v-list v-if="itemsFor(module.id).length">
+                <v-list-item v-for="(item, itemIndex) in itemsFor(module.id)" :key="item.id" :title="item.title">
+                  <template #prepend><v-chip size="small" :color="item.kind === 'assignment' ? 'secondary' : undefined">{{ item.kind }}</v-chip></template>
+                  <v-list-item-subtitle>{{ item.publication_status }}</v-list-item-subtitle>
+                  <template #append>
+                    <div class="row-actions">
+                      <v-tooltip text="Move up">
+                        <template #activator="{ props: tooltipProps }"><v-btn v-bind="tooltipProps" icon="mdi-arrow-up" size="small" variant="text" :disabled="itemIndex === 0" aria-label="Move up" @click="moveItem(module.id, item.id, -1)" /></template>
+                      </v-tooltip>
+                      <v-tooltip text="Move down">
+                        <template #activator="{ props: tooltipProps }"><v-btn v-bind="tooltipProps" icon="mdi-arrow-down" size="small" variant="text" :disabled="itemIndex === itemsFor(module.id).length - 1" aria-label="Move down" @click="moveItem(module.id, item.id, 1)" /></template>
+                      </v-tooltip>
+                      <v-tooltip text="Edit">
+                        <template #activator="{ props: tooltipProps }"><v-btn v-bind="tooltipProps" icon="mdi-pencil-outline" size="small" variant="text" :to="`/teacher/courses/${courseId}/items/${item.id}`" aria-label="Edit" /></template>
+                      </v-tooltip>
+                      <v-tooltip :text="placementCount(item.id) > 1 ? 'Remove from module' : 'Item must remain in at least one module'">
+                        <template #activator="{ props: tooltipProps }"><v-btn v-bind="tooltipProps" icon="mdi-link-off" size="small" variant="text" :disabled="placementCount(item.id) <= 1" aria-label="Remove from module" @click="removePlacement(module.id, item.id)" /></template>
+                      </v-tooltip>
+                    </div>
+                  </template>
+                </v-list-item>
+              </v-list>
+              <p v-else class="text-medium-emphasis">No curriculum items in this module.</p>
+            </v-expansion-panel-text>
+          </v-expansion-panel>
+        </v-expansion-panels>
+      </v-window-item>
+      <v-window-item value="cohorts">
+        <div class="section-heading mb-4">
+          <h2>Cohorts</h2>
+          <v-btn color="primary" @click="cohortDialog=true">Create cohort</v-btn>
+        </div>
+        <v-list v-if="cohorts.length" lines="two"><v-list-item v-for="cohort in cohorts" :key="cohort.id" :to="`/teacher/cohorts/${cohort.id}`" :title="cohort.title" :subtitle="`${cohort.start_date}–${cohort.end_date} · ${cohort.status}`" /></v-list>
+        <p v-else>No cohorts created from this course.</p>
+      </v-window-item>
+    </v-window>
   </template>
   <v-dialog v-model="moduleDialog" max-width="32rem"><v-card title="Add module"><v-card-text><v-text-field v-model="moduleTitle" label="Module title" /></v-card-text><v-card-actions><v-spacer /><v-btn @click="moduleDialog = false">Cancel</v-btn><v-btn color="primary" :disabled="!moduleTitle.trim()" @click="addModule">Add</v-btn></v-card-actions></v-card></v-dialog>
   <v-dialog v-model="editModuleDialog" max-width="32rem"><v-card title="Rename module"><v-card-text><v-text-field v-model="editingModuleTitle" label="Module title" /></v-card-text><v-card-actions><v-spacer /><v-btn @click="editModuleDialog = false">Cancel</v-btn><v-btn color="primary" :disabled="!editingModuleTitle.trim()" @click="updateModule">Save</v-btn></v-card-actions></v-card></v-dialog>
