@@ -53,18 +53,22 @@ async function reply(topicId: string): Promise<void> {
 async function editTopic(topic: DiscussionTopic): Promise<void> {
   const next = window.prompt('Edit topic message', topic.bodyMarkdown)
   if (next === null || !next.trim()) return
-  await discussionService.updateTopic(topic.id, topic.title, next); await refresh()
+  try { await discussionService.updateTopic(topic.id, topic.title, next); await refresh() }
+  catch { message.value = 'Topic could not be updated.' }
 }
 async function editReply(reply: DiscussionReply): Promise<void> {
   const next = window.prompt('Edit reply', reply.bodyMarkdown)
   if (next === null || !next.trim()) return
-  await discussionService.updateReply(reply.id, next); await refresh()
+  try { await discussionService.updateReply(reply.id, next); await refresh() }
+  catch { message.value = 'Reply could not be updated.' }
 }
 async function remove(kind: 'topic' | 'reply', id: string): Promise<void> {
   if (!window.confirm('Delete this discussion content?')) return
-  if (kind === 'topic') await discussionService.deleteTopic(id)
-  else await discussionService.deleteReply(id)
-  await refresh()
+  try {
+    if (kind === 'topic') await discussionService.deleteTopic(id)
+    else await discussionService.deleteReply(id)
+    await refresh()
+  } catch { message.value = `${kind === 'topic' ? 'Topic' : 'Reply'} could not be deleted.` }
 }
 onMounted(() => {
   void load()
