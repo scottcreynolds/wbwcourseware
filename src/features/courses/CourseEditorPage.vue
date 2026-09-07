@@ -205,10 +205,25 @@ onMounted(load)
             <v-btn size="small" color="error" variant="text" @click="deleteModule(module)">Delete module</v-btn>
           </div>
           <v-list v-if="itemsFor(module.id).length">
-            <v-list-item v-for="(item, itemIndex) in itemsFor(module.id)" :key="item.id" :to="`/teacher/courses/${courseId}/items/${item.id}`" :title="item.title">
+            <v-list-item v-for="(item, itemIndex) in itemsFor(module.id)" :key="item.id" :title="item.title">
               <template #prepend><v-chip size="small" :color="item.kind === 'assignment' ? 'secondary' : undefined">{{ item.kind }}</v-chip></template>
               <v-list-item-subtitle>{{ item.publication_status }}</v-list-item-subtitle>
-              <template #append><div class="row-actions"><v-btn icon="mdi-arrow-up" size="small" variant="text" :disabled="itemIndex === 0" @click="moveItem(module.id, item.id, -1)" /><v-btn icon="mdi-arrow-down" size="small" variant="text" :disabled="itemIndex === itemsFor(module.id).length - 1" @click="moveItem(module.id, item.id, 1)" /><v-btn icon="mdi-link-off" size="small" variant="text" aria-label="Remove from module" @click="removePlacement(module.id, item.id)" /></div></template>
+              <template #append>
+                <div class="row-actions">
+                  <v-tooltip text="Move up">
+                    <template #activator="{ props: tooltipProps }"><v-btn v-bind="tooltipProps" icon="mdi-arrow-up" size="small" variant="text" :disabled="itemIndex === 0" aria-label="Move up" @click="moveItem(module.id, item.id, -1)" /></template>
+                  </v-tooltip>
+                  <v-tooltip text="Move down">
+                    <template #activator="{ props: tooltipProps }"><v-btn v-bind="tooltipProps" icon="mdi-arrow-down" size="small" variant="text" :disabled="itemIndex === itemsFor(module.id).length - 1" aria-label="Move down" @click="moveItem(module.id, item.id, 1)" /></template>
+                  </v-tooltip>
+                  <v-tooltip text="Edit">
+                    <template #activator="{ props: tooltipProps }"><v-btn v-bind="tooltipProps" icon="mdi-pencil-outline" size="small" variant="text" :to="`/teacher/courses/${courseId}/items/${item.id}`" aria-label="Edit" /></template>
+                  </v-tooltip>
+                  <v-tooltip text="Remove from module">
+                    <template #activator="{ props: tooltipProps }"><v-btn v-bind="tooltipProps" icon="mdi-link-off" size="small" variant="text" aria-label="Remove from module" @click="removePlacement(module.id, item.id)" /></template>
+                  </v-tooltip>
+                </div>
+              </template>
             </v-list-item>
           </v-list>
           <p v-else class="text-medium-emphasis">No curriculum items in this module.</p>
