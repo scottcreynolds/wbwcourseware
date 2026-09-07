@@ -29,6 +29,10 @@ const itemKind = ref<CurriculumItemKind>('lecture')
 const linkDialog = ref(false)
 const linkModuleId = ref('')
 const linkItemId = ref<string | null>(null)
+const moveDialog = ref(false)
+const moveSourceModuleId = ref('')
+const moveItemId = ref('')
+const moveTargetModuleId = ref<string | null>(null)
 const outlineDialog = ref(false)
 const outlineSource = ref(`# Module: Foundations
 ## Lecture: What a Scene Does
@@ -61,6 +65,11 @@ function placementCount(itemId: string): number {
 
 function moduleOnlyItems(moduleId: string): CourseItem[] {
   return itemsFor(moduleId).filter((item) => placementCount(item.id) <= 1)
+}
+
+function moveTargetOptions(itemId: string): CourseModule[] {
+  const present = new Set(workspace.value?.placements.filter((placement) => placement.item_id === itemId).map((placement) => placement.module_id))
+  return workspace.value?.modules.filter((module) => !present.has(module.id)) ?? []
 }
 
 async function refresh(): Promise<void> {
@@ -162,6 +171,22 @@ async function linkItem(): Promise<void> {
   linkDialog.value = false
 }
 
+function openMoveDialog(moduleId: string, itemId: string): void {
+  moveSourceModuleId.value = moduleId
+  moveItemId.value = itemId
+  moveTargetModuleId.value = null
+  moveDialog.value = true
+}
+
+async function moveItemToModule(): Promise<void> {
+  if (!moveTargetModuleId.value) return
+  await run(async () => {
+    await courseService.addExistingItem(moveTargetModuleId.value!, moveItemId.value)
+    await courseService.removePlacement(moveSourceModuleId.value, moveItemId.value)
+  }, 'Item moved to module.')
+  moveDialog.value = false
+}
+
 async function moveItem(moduleId: string, itemId: string, direction: -1 | 1): Promise<void> {
   const ordered = itemsFor(moduleId)
   const index = ordered.findIndex((item) => item.id === itemId)
@@ -249,6 +274,9 @@ onMounted(load)
                       <v-tooltip text="Edit">
                         <template #activator="{ props: tooltipProps }"><v-btn v-bind="tooltipProps" icon="mdi-pencil-outline" size="small" variant="text" :to="`/teacher/courses/${courseId}/items/${item.id}`" aria-label="Edit" /></template>
                       </v-tooltip>
+                      <v-tooltip :text="moveTargetOptions(item.id).length ? 'Move to module' : 'No other module to move to'">
+                        <template #activator="{ props: tooltipProps }"><v-btn v-bind="tooltipProps" icon="mdi-folder-move-outline" size="small" variant="text" :disabled="moveTargetOptions(item.id).length === 0" aria-label="Move to module" @click="openMoveDialog(module.id, item.id)" /></template>
+                      </v-tooltip>
                       <v-tooltip :text="placementCount(item.id) > 1 ? 'Remove from module' : 'Item must remain in at least one module'">
                         <template #activator="{ props: tooltipProps }"><v-btn v-bind="tooltipProps" icon="mdi-link-off" size="small" variant="text" :disabled="placementCount(item.id) <= 1" aria-label="Remove from module" @click="removePlacement(module.id, item.id)" /></template>
                       </v-tooltip>
@@ -275,6 +303,7 @@ onMounted(load)
   <v-dialog v-model="editModuleDialog" max-width="32rem"><v-card title="Rename module"><v-card-text><v-text-field v-model="editingModuleTitle" label="Module title" /></v-card-text><v-card-actions><v-spacer /><v-btn @click="editModuleDialog = false">Cancel</v-btn><v-btn color="primary" :disabled="!editingModuleTitle.trim()" @click="updateModule">Save</v-btn></v-card-actions></v-card></v-dialog>
   <v-dialog v-model="itemDialog" max-width="32rem"><v-card title="Add curriculum item"><v-card-text><v-select v-model="itemKind" label="Type" :items="['lecture', 'assignment']" /><v-text-field v-model="itemTitle" label="Title" /></v-card-text><v-card-actions><v-spacer /><v-btn @click="itemDialog = false">Cancel</v-btn><v-btn color="primary" :disabled="!itemTitle.trim()" @click="addItem">Create and edit</v-btn></v-card-actions></v-card></v-dialog>
   <v-dialog v-model="linkDialog" max-width="36rem"><v-card title="Link existing item"><v-card-text><v-select v-model="linkItemId" label="Curriculum item" :items="linkableItems(linkModuleId)" item-title="title" item-value="id" /></v-card-text><v-card-actions><v-spacer /><v-btn @click="linkDialog = false">Cancel</v-btn><v-btn color="primary" :disabled="!linkItemId" @click="linkItem">Link</v-btn></v-card-actions></v-card></v-dialog>
+  <v-dialog v-model="moveDialog" max-width="36rem"><v-card title="Move to module"><v-card-text><v-select v-model="moveTargetModuleId" label="Target module" :items="moveTargetOptions(moveItemId)" item-title="title" item-value="id" /></v-card-text><v-card-actions><v-spacer /><v-btn @click="moveDialog = false">Cancel</v-btn><v-btn color="primary" :disabled="!moveTargetModuleId" :loading="saving" @click="moveItemToModule">Move</v-btn></v-card-actions></v-card></v-dialog>
   <v-dialog v-model="outlineDialog" max-width="64rem">
     <v-card title="Import course outline">
       <v-card-text>
