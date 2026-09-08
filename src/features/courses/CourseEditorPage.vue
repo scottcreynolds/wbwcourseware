@@ -244,6 +244,27 @@ async function publishItem(item: CourseItem): Promise<void> {
   await run(() => courseService.publishItem(item.id), `"${item.title}" published.`)
 }
 
+async function publishAllInModule(module: CourseModule): Promise<void> {
+  const drafts = itemsFor(module.id).filter((item) => item.publication_status === 'draft')
+  if (drafts.length === 0) return
+  await run(
+    () => Promise.all(drafts.map((item) => courseService.publishItem(item.id))).then(() => undefined),
+    `Published ${drafts.length} item${drafts.length === 1 ? '' : 's'} in "${module.title}".`,
+  )
+}
+
+async function releaseModuleNow(module: CourseModule): Promise<void> {
+  await run(
+    () =>
+      courseService.updateModuleRelease(module.id, {
+        release_mode: 'manual',
+        release_at: null,
+        manually_released_at: new Date().toISOString(),
+      }),
+    `"${module.title}" released.`,
+  )
+}
+
 function openPreview(item: CourseItem): void {
   previewItem.value = item
   previewDialog.value = true
@@ -371,6 +392,12 @@ onMounted(load)
                 <v-btn size="small" @click="openEditModule(module)">Rename</v-btn>
                 <v-btn size="small" @click="openItemDialog(module.id)">Add item</v-btn>
                 <v-btn size="small" :disabled="linkableItems(module.id).length === 0" @click="openLinkDialog(module.id)">Link existing</v-btn>
+                <v-tooltip :text="itemsFor(module.id).some(item => item.publication_status === 'draft') ? 'Publish every draft item in this module' : 'All items already published'">
+                  <template #activator="{ props: tooltipProps }"><v-btn v-bind="tooltipProps" size="small" color="primary" variant="tonal" :loading="saving" :disabled="!itemsFor(module.id).some(item => item.publication_status === 'draft')" @click="publishAllInModule(module)">Publish all</v-btn></template>
+                </v-tooltip>
+                <v-tooltip :text="module.manually_released_at ? 'Module is already released' : 'Release this module to students now'">
+                  <template #activator="{ props: tooltipProps }"><v-btn v-bind="tooltipProps" size="small" color="secondary" variant="tonal" :loading="saving" :disabled="Boolean(module.manually_released_at)" @click="releaseModuleNow(module)">Release</v-btn></template>
+                </v-tooltip>
                 <v-tooltip :text="moduleOnlyItems(module.id).length ? `Move or delete first: ${moduleOnlyItems(module.id).map(item => item.title).join(', ')}` : 'Delete module'">
                   <template #activator="{ props: tooltipProps }"><v-btn v-bind="tooltipProps" size="small" color="error" variant="text" :disabled="moduleOnlyItems(module.id).length > 0" @click="deleteModule(module)">Delete module</v-btn></template>
                 </v-tooltip>
