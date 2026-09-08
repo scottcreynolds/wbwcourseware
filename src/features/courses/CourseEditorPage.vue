@@ -230,22 +230,6 @@ async function importOutline(): Promise<void> {
 
 async function createCohort():Promise<void>{if(!cohortTitle.value||!cohortStart.value||!cohortEnd.value)return;let newId='';await run(async()=>{newId=await cohortService.createFromCourse({courseId,title:cohortTitle.value,startDate:cohortStart.value,endDate:cohortEnd.value,timezone:cohortTimezone.value})},'Cohort created.');cohortDialog.value=false;if(newId)await router.push(`/teacher/cohorts/${newId}`)}
 
-async function syncNewContent(cohort: Cohort): Promise<void> {
-  saving.value = true
-  errorMessage.value = null
-  try {
-    const created = await cohortService.syncNewContent(courseId, [cohort.id])
-    await refresh()
-    notice.value = created > 0
-      ? `Added ${created} new item${created === 1 ? '' : 's'} to “${cohort.title}”.`
-      : `“${cohort.title}” is already up to date.`
-  } catch (error) {
-    errorMessage.value = error instanceof Error ? error.message : 'New content could not be synced.'
-  } finally {
-    saving.value = false
-  }
-}
-
 onMounted(load)
 </script>
 
@@ -327,13 +311,7 @@ onMounted(load)
           <v-btn color="primary" @click="cohortDialog=true">Create cohort</v-btn>
         </div>
         <v-list v-if="cohorts.length" lines="two">
-          <v-list-item v-for="cohort in cohorts" :key="cohort.id" :to="`/teacher/cohorts/${cohort.id}`" :title="cohort.title" :subtitle="`${cohort.start_date}–${cohort.end_date} · ${cohort.status}`">
-            <template #append>
-              <v-tooltip text="Push new modules and items added to the course into this cohort">
-                <template #activator="{ props: tooltipProps }"><v-btn v-bind="tooltipProps" size="small" variant="tonal" :loading="saving" @click.stop.prevent="syncNewContent(cohort)">Sync new content</v-btn></template>
-              </v-tooltip>
-            </template>
-          </v-list-item>
+          <v-list-item v-for="cohort in cohorts" :key="cohort.id" :to="`/teacher/cohorts/${cohort.id}`" :title="cohort.title" :subtitle="`${cohort.start_date}–${cohort.end_date} · ${cohort.status}`" />
         </v-list>
         <p v-else>No cohorts created from this course.</p>
       </v-window-item>
