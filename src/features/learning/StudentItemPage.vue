@@ -10,6 +10,10 @@ import type {LearningItemDetail,LearningOutline} from '@/types/learning'
 const route=useRoute(),courseId=String(route.params.courseId),itemId=String(route.params.itemId)
 const item=ref<LearningItemDetail|null>(null),resources=ref<CourseItemResource[]>([]),outline=ref<LearningOutline|null>(null),loading=ref(true),errorMessage=ref<string|null>(null)
 const printView=computed(()=>route.name==='student-item-print')
+const orderedItems=computed(()=>outline.value?.modules.flatMap(module=>module.items)??[])
+const currentIndex=computed(()=>orderedItems.value.findIndex(entry=>entry.id===itemId))
+const previousItem=computed(()=>currentIndex.value>0?orderedItems.value[currentIndex.value-1]:null)
+const nextItem=computed(()=>currentIndex.value>=0&&currentIndex.value<orderedItems.value.length-1?orderedItems.value[currentIndex.value+1]:null)
 onMounted(async()=>{try{const r=await learningService.item(courseId,itemId);item.value=r.item;resources.value=r.resources;outline.value=r.outline}catch{errorMessage.value='This page is locked, unpublished, missing, or outside your course.'}finally{loading.value=false}})
 function printPage(){window.print()}
 </script>
@@ -24,5 +28,15 @@ function printPage(){window.print()}
     <section v-if="resources.length" class="resource-section" aria-labelledby="resources-title"><h3 id="resources-title">Resources</h3><ol><li v-for="resource in resources" :key="resource.id"><a :href="resource.url" target="_blank" rel="noopener noreferrer">{{ resource.title }}</a><span class="print-url"> — {{ resource.url }}</span><p v-if="resource.description">{{ resource.description }}</p></li></ol></section>
     <SubmissionPanel v-if="item.kind === 'assignment' && !printView" :item-id="item.id" can-submit />
     <div v-if="printView" class="screen-only print-actions"><v-btn color="primary" prepend-icon="mdi-printer" @click="printPage">Open print / save as PDF</v-btn></div>
+    <nav v-if="!printView && (previousItem || nextItem)" class="screen-only item-pager" aria-label="Curriculum navigation">
+      <router-link v-if="previousItem" :to="`/student/courses/${courseId}/items/${previousItem.id}`" class="item-pager-link item-pager-previous">
+        <span class="item-pager-label"><v-icon icon="mdi-arrow-left" size="small" /> Previous</span>
+        <span class="item-pager-title">{{ previousItem.title }}</span>
+      </router-link>
+      <router-link v-if="nextItem" :to="`/student/courses/${courseId}/items/${nextItem.id}`" class="item-pager-link item-pager-next">
+        <span class="item-pager-label">Next <v-icon icon="mdi-arrow-right" size="small" /></span>
+        <span class="item-pager-title">{{ nextItem.title }}</span>
+      </router-link>
+    </nav>
   </article>
 </template>

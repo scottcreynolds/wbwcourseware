@@ -128,8 +128,10 @@ html {
 .course-header h2,.document-title { font-size: clamp(1.8rem,4vw,3rem); }
 .locked-module { background: #f1eee9; }
 .v-theme--writersBeWritingDark .locked-module { background: #262626; }
-.print-document { max-width: 50rem; margin-inline: auto; background: #fff; padding: clamp(1.25rem,4vw,3rem); }
+.print-document { max-width: 50rem; margin-inline: auto; background: #fff; color: #1a1a1a; padding: clamp(1.25rem,4vw,3rem); }
+.v-theme--writersBeWritingDark .print-document { background: #1e1e1e; color: #f2f0ed; }
 .print-header { border-bottom: 2px solid #4f355f; margin-bottom: 2rem; padding-bottom: .75rem; }
+.v-theme--writersBeWritingDark .print-header { border-bottom-color: #9b7cb0; }
 .brand-name { color: #4f355f; font-size: 1.15rem; font-weight: 800; }
 .due-date { font-weight: 700; margin-block: .75rem 1.5rem; }
 .resource-section { border-top: 1px solid #bbb; margin-top: 2.5rem; padding-top: 1rem; }
@@ -137,6 +139,22 @@ html {
 .print-url { overflow-wrap: anywhere; }
 .print-actions { margin-top: 2rem; }
 .submission-panel { margin-top: 2.5rem; }
+
+.item-pager { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 2.5rem; padding-top: 1.5rem; border-top: 1px solid #ddd; }
+.v-theme--writersBeWritingDark .item-pager { border-top-color: #3a3a3a; }
+.item-pager-link { display: flex; flex-direction: column; gap: .25rem; padding: .85rem 1rem; border: 1px solid #ddd; border-radius: 8px; text-decoration: none; color: inherit; transition: background-color .15s ease; }
+.v-theme--writersBeWritingDark .item-pager-link { border-color: #3a3a3a; }
+.item-pager-link:hover { background: rgba(0, 0, 0, 0.04); }
+.v-theme--writersBeWritingDark .item-pager-link:hover { background: rgba(255, 255, 255, 0.06); }
+.item-pager-next { grid-column: 2; text-align: right; align-items: flex-end; }
+.item-pager-label { font-size: .8rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: #6d3f2d; display: flex; align-items: center; gap: .25rem; }
+.v-theme--writersBeWritingDark .item-pager-label { color: #d9a273; }
+.item-pager-title { font-weight: 600; }
+
+@media (max-width: 720px) {
+  .item-pager { grid-template-columns: 1fr; }
+  .item-pager-next { grid-column: 1; text-align: left; align-items: flex-start; }
+}
 
 @media (max-width: 720px) {
   .editor-meta-grid { display: block; }
@@ -148,7 +166,7 @@ html {
   @page { margin: .7in; }
   .v-application__wrap > header,.screen-only,.page-title { display:none !important; }
   .v-main { padding:0 !important; }
-  .page-container,.print-document { width:auto; max-width:none; margin:0; padding:0; }
+  .page-container,.print-document { width:auto; max-width:none; margin:0; padding:0; background:#fff !important; color:#111 !important; }
   body,.v-application,.v-main { background:#fff !important; color:#111 !important; }
   .markdown-content a,.resource-section a { color:#111; text-decoration:underline; }
   .markdown-content h1,.markdown-content h2,.markdown-content h3 { break-after:avoid; }
