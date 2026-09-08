@@ -1,5 +1,5 @@
 begin;
-select plan(15);
+select plan(16);
 select has_type('public','cohort_status','cohort status exists');
 select has_type('public','module_release_mode','release mode exists');
 select has_table('public','cohorts','cohorts exist');
@@ -56,5 +56,22 @@ select is(
   'syncing adds the new module, item, and their placement together'
 );
 select is(:second_sync_count, 0, 'syncing again is idempotent and creates nothing new');
+
+-- A new item added to a module the cohort ALREADY has content in must not
+-- collide with an existing placement's position: the cohort module's own
+-- position numbering can differ from the course module's (e.g. after a
+-- reorder on either side), so reusing the course-side position verbatim
+-- can land on a position the cohort has already taken.
+insert into public.course_items(id, course_id, kind, title, slug, publication_status)
+values ('22222222-2222-2222-2222-22222222222a','22222222-2222-2222-2222-222222222222','lecture','Second Lecture In Existing Module','second-lecture-existing','published');
+update public.course_module_items set position = 1 where module_id = '22222222-2222-2222-2222-222222222223' and item_id = '22222222-2222-2222-2222-222222222224';
+insert into public.course_module_items(module_id, item_id, position) values ('22222222-2222-2222-2222-222222222223','22222222-2222-2222-2222-22222222222a',0);
+set local role authenticated;
+set local request.jwt.claims = '{"sub":"22222222-2222-2222-2222-222222222221","role":"authenticated"}';
+select lives_ok(
+  $$select public.sync_new_course_content_to_cohorts('22222222-2222-2222-2222-222222222222', array['22222222-2222-2222-2222-222222222227']::uuid[])$$,
+  'syncing a new item into a module the cohort already has a placement in does not collide on position'
+);
+reset role;
 
 select * from finish();rollback;
