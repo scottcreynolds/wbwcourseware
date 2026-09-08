@@ -1,11 +1,16 @@
 :root {
-  color-scheme: light;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
 }
 
 html {
   background: #f7f4ef;
+}
+
+@media (prefers-color-scheme: dark) {
+  html {
+    background: #121212;
+  }
 }
 
 :focus-visible {
@@ -26,6 +31,9 @@ html {
 .v-list-item:nth-of-type(even) {
   background: rgba(0, 0, 0, 0.03);
 }
+.v-theme--writersBeWritingDark .v-list-item:nth-of-type(even) {
+  background: rgba(255, 255, 255, 0.045);
+}
 
 .skip-link {
   position: fixed;
@@ -36,6 +44,14 @@ html {
   background: #fff;
   color: #24172b;
   transform: translateY(-120%);
+}
+.v-theme--writersBeWritingDark .skip-link {
+  background: #2a2a2a;
+  color: #f2f0ed;
+}
+
+.v-theme--writersBeWritingDark .v-alert.bg-error {
+  color: #000 !important;
 }
 
 .skip-link:focus {
@@ -103,12 +119,15 @@ html {
 .markdown-content img,
 .markdown-content iframe { max-width: 100%; }
 .markdown-content pre { overflow-x: auto; padding: 1rem; background: #f1ece5; }
+.v-theme--writersBeWritingDark .markdown-content blockquote { border-inline-start-color: #55504a; color: #cfc9c2; }
+.v-theme--writersBeWritingDark .markdown-content pre { background: #262626; }
 .file-button { display: inline-block; margin-bottom: 1rem; padding: 0.5rem 0.8rem; border: 1px solid currentColor; border-radius: 0.5rem; cursor: pointer; }
 .file-button input { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
 .invite-row { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: .75rem; align-items: start; }
 .course-header { margin-bottom: 2rem; }
 .course-header h2,.document-title { font-size: clamp(1.8rem,4vw,3rem); }
 .locked-module { background: #f1eee9; }
+.v-theme--writersBeWritingDark .locked-module { background: #262626; }
 .print-document { max-width: 50rem; margin-inline: auto; background: #fff; padding: clamp(1.25rem,4vw,3rem); }
 .print-header { border-bottom: 2px solid #4f355f; margin-bottom: 2rem; padding-bottom: .75rem; }
 .brand-name { color: #4f355f; font-size: 1.15rem; font-weight: 800; }

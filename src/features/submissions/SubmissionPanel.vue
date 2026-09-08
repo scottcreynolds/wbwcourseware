@@ -71,7 +71,7 @@ onMounted(load)
           <p v-if="!submission.versions.length" class="text-medium-emphasis">No submission received.</p>
           <div v-for="version in submission.versions" :key="version.id" class="mb-4">
             <strong>Version {{ version.versionNumber }}</strong>
-            <v-chip v-if="version.isLate" color="warning" size="small" class="ml-2">Late</v-chip>
+            <v-chip v-if="version.isLate" color="warning" variant="flat" size="small" class="ml-2">Late</v-chip>
             <p class="text-medium-emphasis">{{ new Date(version.submittedAt).toLocaleString() }}</p>
             <v-btn
               v-for="file in version.files" :key="file.id" variant="text" prepend-icon="mdi-file-pdf-box"

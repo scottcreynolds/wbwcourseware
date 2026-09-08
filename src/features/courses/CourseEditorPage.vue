@@ -290,7 +290,7 @@ onMounted(load)
               <v-list v-if="itemsFor(module.id).length">
                 <v-list-item v-for="(item, itemIndex) in itemsFor(module.id)" :key="item.id" :title="item.title">
                   <template #prepend><v-chip size="small" :color="item.kind === 'assignment' ? 'secondary' : undefined">{{ item.kind }}</v-chip></template>
-                  <v-list-item-subtitle><v-chip size="x-small" :color="item.publication_status === 'published' ? 'success' : undefined" variant="tonal">{{ item.publication_status }}</v-chip></v-list-item-subtitle>
+                  <v-list-item-subtitle><v-chip size="x-small" :color="item.publication_status === 'published' ? 'success' : 'neutral'" variant="flat">{{ item.publication_status }}</v-chip></v-list-item-subtitle>
                   <template #append>
                     <div class="row-actions">
                       <v-btn v-if="item.publication_status === 'draft'" size="small" color="primary" variant="tonal" :loading="saving" @click="publishItem(item)">Publish</v-btn>
