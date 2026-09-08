@@ -98,8 +98,25 @@ alter table public.course_modules
 -- 3. Enrollment / invitations: repoint from cohorts to courses directly
 -- ============================================================
 
+-- Every cohort_id/cohort_item_id column below currently points at
+-- cohorts.id / cohort_items.id, NOT courses.id / course_items.id -- a
+-- cohort's primary key is its own uuid, distinct from its course's. The
+-- rename must remap each value through the cohort row it references
+-- before the column can be repointed at courses/course_items directly;
+-- renaming the column in place would silently carry the wrong ids
+-- forward and fail the new foreign key against real (non-1:1-by-id) data.
+
 alter table public.cohort_invitations rename column cohort_id to course_id;
 alter table public.cohort_invitations drop constraint cohort_invitations_cohort_id_fkey;
+do $$
+begin
+  if to_regclass('public.cohorts') is not null then
+    update public.cohort_invitations ci
+    set course_id = co.course_id
+    from public.cohorts co
+    where co.id = ci.course_id;
+  end if;
+end $$;
 alter table public.cohort_invitations add constraint cohort_invitations_course_id_fkey
   foreign key (course_id) references public.courses(id) on delete cascade;
 alter table public.cohort_invitations rename to course_invitations;
@@ -109,6 +126,15 @@ alter index if exists cohort_invitations_teacher_rate_idx rename to course_invit
 
 alter table public.cohort_enrollments rename column cohort_id to course_id;
 alter table public.cohort_enrollments drop constraint cohort_enrollments_cohort_id_fkey;
+do $$
+begin
+  if to_regclass('public.cohorts') is not null then
+    update public.cohort_enrollments ce
+    set course_id = co.course_id
+    from public.cohorts co
+    where co.id = ce.course_id;
+  end if;
+end $$;
 alter table public.cohort_enrollments add constraint cohort_enrollments_course_id_fkey
   foreign key (course_id) references public.courses(id) on delete cascade;
 alter table public.cohort_enrollments drop constraint if exists cohort_enrollments_cohort_id_student_id_key;
@@ -123,22 +149,57 @@ alter index if exists cohort_enrollments_active_idx rename to course_enrollments
 
 alter table public.announcements rename column cohort_id to course_id;
 alter table public.announcements drop constraint announcements_cohort_id_fkey;
+do $$
+begin
+  if to_regclass('public.cohorts') is not null then
+    update public.announcements a
+    set course_id = co.course_id
+    from public.cohorts co
+    where co.id = a.course_id;
+  end if;
+end $$;
 alter table public.announcements add constraint announcements_course_id_fkey
   foreign key (course_id) references public.courses(id) on delete cascade;
 alter index if exists announcements_cohort_published_idx rename to announcements_course_published_idx;
 
+-- protect_discussion_topic_identity's trigger body still references
+-- new.cohort_id/old.cohort_id at this point in the transaction (it is
+-- only fixed further below), so it must be dropped before the rename and
+-- remap below or it raises "record has no field" on the very update that
+-- is supposed to perform the remap.
+drop trigger if exists protect_discussion_topic_identity on public.discussion_topics;
+
 alter table public.discussion_topics rename column cohort_id to course_id;
 alter table public.discussion_topics drop constraint discussion_topics_cohort_id_fkey;
+do $$
+begin
+  if to_regclass('public.cohorts') is not null then
+    update public.discussion_topics t
+    set course_id = co.course_id
+    from public.cohorts co
+    where co.id = t.course_id;
+  end if;
+end $$;
 alter table public.discussion_topics add constraint discussion_topics_course_id_fkey
   foreign key (course_id) references public.courses(id) on delete cascade;
 alter index if exists discussion_topics_cohort_idx rename to discussion_topics_course_idx;
 
 -- ============================================================
--- 5. Submissions: repoint from cohort_items to course_items
+-- 5. Submissions: repoint from cohort_items to course_items, remapping
+--    through cohort_items.source_item_id the same way section 2 does.
 -- ============================================================
 
 alter table public.submissions rename column cohort_item_id to course_item_id;
 alter table public.submissions drop constraint submissions_cohort_item_id_fkey;
+do $$
+begin
+  if to_regclass('public.cohort_items') is not null then
+    update public.submissions s
+    set course_item_id = ci.source_item_id
+    from public.cohort_items ci
+    where ci.id = s.course_item_id and ci.source_item_id is not null;
+  end if;
+end $$;
 alter table public.submissions add constraint submissions_course_item_id_fkey
   foreign key (course_item_id) references public.course_items(id) on delete restrict;
 alter table public.submissions drop constraint if exists submissions_cohort_item_id_student_id_key;
@@ -581,7 +642,9 @@ with check(author_id = (select auth.uid()) or exists(select 1 from public.discus
 
 -- protect_discussion_topic_identity referenced new.cohort_id -- fix it to
 -- reference the renamed course_id column, matching the existing pattern
--- of one function per table shape (see 20260907001200's fix note).
+-- of one function per table shape (see 20260907001200's fix note). Its
+-- trigger was dropped above (section 4) before the column rename/remap
+-- so it needs to be recreated here now that the function is correct.
 create or replace function public.protect_discussion_topic_identity()
 returns trigger language plpgsql set search_path = '' as $$
 begin
@@ -593,6 +656,9 @@ begin
   end if;
   return new;
 end $$;
+create trigger protect_discussion_topic_identity before update on public.discussion_topics
+for each row execute function public.protect_discussion_topic_identity();
+revoke all on function public.protect_discussion_topic_identity() from public, anon, authenticated;
 
 -- ============================================================
 -- 11. Indexes that used to live on the cohort tables, carried forward
