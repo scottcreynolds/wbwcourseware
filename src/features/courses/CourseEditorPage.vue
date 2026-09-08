@@ -7,6 +7,7 @@ import { slugify } from '@/features/courses/slug'
 import type { CourseItem, CourseModule, CourseStatus, CourseWorkspace, CurriculumItemKind } from '@/types/course'
 import { cohortService } from '@/features/cohorts/cohortService'
 import type { Cohort } from '@/types/cohort'
+import MarkdownContent from '@/shared/MarkdownContent.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -33,6 +34,8 @@ const moveDialog = ref(false)
 const moveSourceModuleId = ref('')
 const moveItemId = ref('')
 const moveTargetModuleId = ref<string | null>(null)
+const previewDialog = ref(false)
+const previewItem = ref<CourseItem | null>(null)
 const outlineDialog = ref(false)
 const outlineSource = ref(`# Module: Foundations
 ## Lecture: What a Scene Does
@@ -191,6 +194,11 @@ async function publishItem(item: CourseItem): Promise<void> {
   await run(() => courseService.publishItem(item.id), `“${item.title}” published.`)
 }
 
+function openPreview(item: CourseItem): void {
+  previewItem.value = item
+  previewDialog.value = true
+}
+
 async function moveItem(moduleId: string, itemId: string, direction: -1 | 1): Promise<void> {
   const ordered = itemsFor(moduleId)
   const index = ordered.findIndex((item) => item.id === itemId)
@@ -286,6 +294,9 @@ onMounted(load)
                   <template #append>
                     <div class="row-actions">
                       <v-btn v-if="item.publication_status === 'draft'" size="small" color="primary" variant="tonal" :loading="saving" @click="publishItem(item)">Publish</v-btn>
+                      <v-tooltip text="Preview">
+                        <template #activator="{ props: tooltipProps }"><v-btn v-bind="tooltipProps" icon="mdi-eye-outline" size="small" variant="text" aria-label="Preview" @click="openPreview(item)" /></template>
+                      </v-tooltip>
                       <v-tooltip text="Move up">
                         <template #activator="{ props: tooltipProps }"><v-btn v-bind="tooltipProps" icon="mdi-arrow-up" size="small" variant="text" :disabled="itemIndex === 0" aria-label="Move up" @click="moveItem(module.id, item.id, -1)" /></template>
                       </v-tooltip>
@@ -333,6 +344,17 @@ onMounted(load)
   <v-dialog v-model="itemDialog" max-width="32rem"><v-card title="Add curriculum item"><v-card-text><v-select v-model="itemKind" label="Type" :items="['lecture', 'assignment']" /><v-text-field v-model="itemTitle" label="Title" /></v-card-text><v-card-actions><v-spacer /><v-btn @click="itemDialog = false">Cancel</v-btn><v-btn color="primary" :disabled="!itemTitle.trim()" @click="addItem">Create and edit</v-btn></v-card-actions></v-card></v-dialog>
   <v-dialog v-model="linkDialog" max-width="36rem"><v-card title="Link existing item"><v-card-text><v-select v-model="linkItemId" label="Curriculum item" :items="linkableItems(linkModuleId)" item-title="title" item-value="id" /></v-card-text><v-card-actions><v-spacer /><v-btn @click="linkDialog = false">Cancel</v-btn><v-btn color="primary" :disabled="!linkItemId" @click="linkItem">Link</v-btn></v-card-actions></v-card></v-dialog>
   <v-dialog v-model="moveDialog" max-width="36rem"><v-card title="Move to module"><v-card-text><v-select v-model="moveTargetModuleId" label="Target module" :items="moveTargetOptions(moveItemId)" item-title="title" item-value="id" /></v-card-text><v-card-actions><v-spacer /><v-btn @click="moveDialog = false">Cancel</v-btn><v-btn color="primary" :disabled="!moveTargetModuleId" :loading="saving" @click="moveItemToModule">Move</v-btn></v-card-actions></v-card></v-dialog>
+  <v-dialog v-model="previewDialog" max-width="48rem" height="90vh" scrollable>
+    <v-card v-if="previewItem" :title="previewItem.title">
+      <v-card-text>
+        <MarkdownContent :source="previewItem.body_markdown" />
+      </v-card-text>
+      <v-card-actions>
+        <v-spacer />
+        <v-btn @click="previewDialog = false">Close</v-btn>
+      </v-card-actions>
+    </v-card>
+  </v-dialog>
   <v-dialog v-model="outlineDialog" max-width="64rem">
     <v-card title="Import course outline">
       <v-card-text>
