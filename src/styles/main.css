@@ -140,8 +140,11 @@ html {
 .print-actions { margin-top: 2rem; }
 .submission-panel { margin-top: 2.5rem; }
 
-.item-pager { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 2.5rem; padding-top: 1.5rem; border-top: 1px solid #ddd; }
-.v-theme--writersBeWritingDark .item-pager { border-top-color: #3a3a3a; }
+.item-pager { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+.item-pager-bottom { margin-top: 2.5rem; padding-top: 1.5rem; border-top: 1px solid #ddd; }
+.v-theme--writersBeWritingDark .item-pager-bottom { border-top-color: #3a3a3a; }
+.item-pager-top { margin-bottom: 2rem; padding-bottom: 1.5rem; border-bottom: 1px solid #ddd; }
+.v-theme--writersBeWritingDark .item-pager-top { border-bottom-color: #3a3a3a; }
 .item-pager-link { display: flex; flex-direction: column; gap: .25rem; padding: .85rem 1rem; border: 1px solid #ddd; border-radius: 8px; text-decoration: none; color: inherit; transition: background-color .15s ease; }
 .v-theme--writersBeWritingDark .item-pager-link { border-color: #3a3a3a; }
 .item-pager-link:hover { background: rgba(0, 0, 0, 0.04); }
