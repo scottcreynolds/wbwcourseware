@@ -7,7 +7,7 @@ import type { DiscussionReply, DiscussionTopic } from '@/types/discussion'
 
 const REFRESH_INTERVAL_MS = 60_000
 
-const props = defineProps<{ cohortId: string; teacher?: boolean }>()
+const props = defineProps<{ courseId: string; teacher?: boolean }>()
 const auth = useAuthStore()
 const topics = ref<DiscussionTopic[]>([])
 const title = ref('')
@@ -21,7 +21,7 @@ let refreshTimer: ReturnType<typeof setInterval> | undefined
 
 function canManage(entry: DiscussionReply): boolean { return Boolean(props.teacher || entry.authorId === auth.profile?.id) }
 async function refresh(): Promise<void> {
-  try { topics.value = await discussionService.list(props.cohortId) }
+  try { topics.value = await discussionService.list(props.courseId) }
   catch { message.value = 'Discussions could not be loaded.' }
 }
 async function load(): Promise<void> {
@@ -37,7 +37,7 @@ async function manualRefresh(): Promise<void> {
 async function createTopic(): Promise<void> {
   if (!title.value.trim() || !body.value.trim()) { message.value = 'Title and message are required.'; return }
   try {
-    await discussionService.createTopic(props.cohortId, title.value.trim(), body.value)
+    await discussionService.createTopic(props.courseId, title.value.trim(), body.value)
     title.value = ''
     body.value = ''
     newTopicDialog.value = false

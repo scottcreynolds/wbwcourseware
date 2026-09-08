@@ -2,20 +2,20 @@ import { supabase } from '@/lib/supabase'
 import type { Announcement } from '@/types/announcement'
 
 export const announcementService = {
-  async list(cohortId: string): Promise<Announcement[]> {
+  async list(courseId: string): Promise<Announcement[]> {
     const { data, error } = await supabase.from('announcements')
       .select('*,announcement_deliveries(status)')
-      .eq('cohort_id', cohortId)
+      .eq('course_id', courseId)
       .order('created_at', { ascending: false })
     if (error) throw error
     return data as Announcement[]
   },
 
-  async create(cohortId: string, title: string, bodyMarkdown: string): Promise<Announcement> {
+  async create(courseId: string, title: string, bodyMarkdown: string): Promise<Announcement> {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('Authentication required')
     const { data, error } = await supabase.from('announcements').insert({
-      cohort_id: cohortId,
+      course_id: courseId,
       author_id: user.id,
       title,
       body_markdown: bodyMarkdown,

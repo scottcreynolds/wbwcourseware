@@ -58,7 +58,6 @@ export const routes: RouteRecordRaw[] = [
     component: () => import('@/features/courses/ItemEditorPage.vue'),
     meta: { title: 'Curriculum editor', requiresAuth: true, requiredRole: 'teacher' },
   },
-  { path:'/teacher/cohorts/:cohortId',name:'cohort-editor',component:()=>import('@/features/cohorts/CohortEditorPage.vue'),meta:{title:'Cohort dashboard',requiresAuth:true,requiredRole:'teacher'} },
   {
     path: '/student',
     name: 'student-dashboard',
@@ -66,19 +65,19 @@ export const routes: RouteRecordRaw[] = [
     meta: { title: 'My courses', requiresAuth: true, requiredRole: 'student' },
   },
   {
-    path: '/student/cohorts/:cohortId',
-    name: 'student-cohort',
-    component: () => import('@/features/learning/StudentCohortPage.vue'),
+    path: '/student/courses/:courseId',
+    name: 'student-course',
+    component: () => import('@/features/learning/StudentCoursePage.vue'),
     meta: { title: 'Course materials', requiresAuth: true, requiredRole: 'student' },
   },
   {
-    path: '/student/cohorts/:cohortId/items/:itemId',
+    path: '/student/courses/:courseId/items/:itemId',
     name: 'student-item',
     component: () => import('@/features/learning/StudentItemPage.vue'),
     meta: { title: 'Course page', requiresAuth: true, requiredRole: 'student' },
   },
   {
-    path: '/student/cohorts/:cohortId/items/:itemId/print',
+    path: '/student/courses/:courseId/items/:itemId/print',
     name: 'student-item-print',
     component: () => import('@/features/learning/StudentItemPage.vue'),
     meta: {

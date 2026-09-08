@@ -1,11 +1,10 @@
 import { supabase } from '@/lib/supabase'
-import type { CohortItem } from '@/types/cohort'
 import type { CourseItemResource } from '@/types/course'
-import type { LearningOutline } from '@/types/learning'
+import type { LearningItemDetail, LearningOutline } from '@/types/learning'
 
-async function loadOutline(cohortId: string): Promise<LearningOutline> {
-  const { data, error } = await supabase.rpc('get_student_cohort_outline', {
-    target_cohort_id: cohortId,
+async function loadOutline(courseId: string): Promise<LearningOutline> {
+  const { data, error } = await supabase.rpc('get_student_course_outline', {
+    target_course_id: courseId,
   })
   if (error) throw error
   return data as LearningOutline
@@ -15,23 +14,23 @@ export const learningService = {
   outline: loadOutline,
 
   async item(
-    cohortId: string,
+    courseId: string,
     itemId: string,
   ): Promise<{
-    item: CohortItem
+    item: LearningItemDetail
     resources: CourseItemResource[]
     outline: LearningOutline
   }> {
     const [itemResult, resourcesResult, outline] = await Promise.all([
-      supabase.from('cohort_items').select('*').eq('id', itemId).eq('cohort_id', cohortId).single(),
-      supabase.from('cohort_item_resources').select('*').eq('item_id', itemId).order('position'),
-      loadOutline(cohortId),
+      supabase.rpc('get_student_course_item', { target_course_id: courseId, target_item_id: itemId }),
+      supabase.from('course_item_resources').select('*').eq('item_id', itemId).order('position'),
+      loadOutline(courseId),
     ])
 
     if (itemResult.error) throw itemResult.error
     if (resourcesResult.error) throw resourcesResult.error
     return {
-      item: itemResult.data as CohortItem,
+      item: itemResult.data as LearningItemDetail,
       resources: resourcesResult.data as CourseItemResource[],
       outline,
     }

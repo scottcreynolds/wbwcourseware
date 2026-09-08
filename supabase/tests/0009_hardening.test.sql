@@ -1,10 +1,10 @@
 begin;
 select plan(7);
-select has_index('public', 'cohorts', 'cohorts_teacher_status_idx', 'teacher cohort lookup indexed');
-select has_index('public', 'cohort_modules', 'cohort_modules_release_idx', 'module release lookup indexed');
-select has_index('public', 'cohort_items', 'cohort_items_due_idx', 'assignment due lookup indexed');
-select has_index('public', 'cohort_enrollments', 'cohort_enrollments_active_idx', 'active membership lookup indexed');
-select has_index('public', 'cohort_invitations', 'cohort_invitations_teacher_rate_idx', 'invitation rate lookup indexed');
+select has_index('public', 'courses', 'courses_teacher_status_idx', 'teacher course lookup indexed');
+select has_index('public', 'course_modules', 'course_modules_release_idx', 'module release lookup indexed');
+select has_index('public', 'course_items', 'course_items_due_idx', 'assignment due lookup indexed');
+select has_index('public', 'course_enrollments', 'course_enrollments_active_idx', 'active membership lookup indexed');
+select has_index('public', 'course_invitations', 'course_invitations_teacher_rate_idx', 'invitation rate lookup indexed');
 select function_privs_are('public', 'protect_discussion_topic_identity', array[]::text[], 'authenticated', array[]::text[], 'trigger function is not callable');
 select function_privs_are('public', 'protect_discussion_reply_identity', array[]::text[], 'authenticated', array[]::text[], 'trigger function is not callable');
 select * from finish();

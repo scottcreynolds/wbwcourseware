@@ -6,7 +6,7 @@ import type { Announcement } from '@/types/announcement'
 
 const REFRESH_INTERVAL_MS = 60_000
 
-const props = defineProps<{ cohortId: string; teacher?: boolean; mostRecentOnly?: boolean }>()
+const props = defineProps<{ courseId: string; teacher?: boolean; mostRecentOnly?: boolean }>()
 const announcements = ref<Announcement[]>([])
 const visibleAnnouncements = computed(() =>
   props.mostRecentOnly ? announcements.value.slice(0, 1) : announcements.value,
@@ -24,7 +24,7 @@ const editingBody = ref('')
 let refreshTimer: ReturnType<typeof setInterval> | undefined
 
 async function refresh(): Promise<void> {
-  try { announcements.value = await announcementService.list(props.cohortId) }
+  try { announcements.value = await announcementService.list(props.courseId) }
   catch { message.value = 'Announcements could not be loaded.' }
 }
 
@@ -44,7 +44,7 @@ async function create(publish: boolean): Promise<void> {
   if (!title.value.trim()) { message.value = 'Title is required.'; return }
   saving.value = true
   try {
-    const announcement = await announcementService.create(props.cohortId, title.value.trim(), body.value)
+    const announcement = await announcementService.create(props.courseId, title.value.trim(), body.value)
     if (publish) await announcementService.publish(announcement.id)
     title.value = ''
     body.value = ''

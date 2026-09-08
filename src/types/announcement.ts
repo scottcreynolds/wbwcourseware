@@ -1,7 +1,7 @@
 export type AnnouncementStatus = 'draft' | 'published'
 export type Announcement = {
   id: string
-  cohort_id: string
+  course_id: string
   author_id: string
   title: string
   body_markdown: string

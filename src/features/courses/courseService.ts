@@ -9,12 +9,23 @@ import type {
   CurriculumItemKind,
   ModuleItemPlacement,
   PublicationStatus,
+  ReleaseMode,
 } from '@/types/course'
 
 async function requireUserId(): Promise<string> {
   const { data, error } = await supabase.auth.getUser()
   if (error || !data.user) throw error ?? new Error('Authentication required')
   return data.user.id
+}
+
+function defaultCourseDates(): { start_date: string; end_date: string; timezone: string } {
+  const start = new Date()
+  const end = new Date(start.getTime() + 90 * 24 * 60 * 60 * 1000)
+  return {
+    start_date: start.toISOString().slice(0, 10),
+    end_date: end.toISOString().slice(0, 10),
+    timezone: 'America/New_York',
+  }
 }
 
 export const courseService = {
@@ -27,11 +38,19 @@ export const courseService = {
     const teacherId = await requireUserId()
     const { data, error } = await supabase
       .from('courses')
-      .insert({ teacher_id: teacherId, title: title.trim() })
+      .insert({ teacher_id: teacherId, title: title.trim(), ...defaultCourseDates() })
       .select('*')
       .single()
     if (error) throw error
     return data as Course
+  },
+  async duplicateCourse(courseId: string, newTitle: string): Promise<string> {
+    const { data, error } = await supabase.rpc('duplicate_course', {
+      target_course_id: courseId,
+      new_title: newTitle,
+    })
+    if (error) throw error
+    return data as string
   },
   async loadWorkspace(courseId: string): Promise<CourseWorkspace> {
     const [courseResult, modulesResult, itemsResult, placementsResult] = await Promise.all([
@@ -54,7 +73,15 @@ export const courseService = {
   },
   async updateCourse(
     courseId: string,
-    values: { title: string; description: string; status: CourseStatus },
+    values: {
+      title: string
+      description: string
+      status: CourseStatus
+      start_date: string
+      end_date: string
+      timezone: string
+      intro_markdown: string
+    },
   ): Promise<void> {
     const { error } = await supabase.from('courses').update(values).eq('id', courseId)
     if (error) throw error
@@ -71,6 +98,13 @@ export const courseService = {
   },
   async updateModule(moduleId: string, title: string): Promise<void> {
     const { error } = await supabase.from('course_modules').update({ title: title.trim() }).eq('id', moduleId)
+    if (error) throw error
+  },
+  async updateModuleRelease(
+    moduleId: string,
+    values: { release_mode: ReleaseMode; release_at: string | null; manually_released_at: string | null },
+  ): Promise<void> {
+    const { error } = await supabase.from('course_modules').update(values).eq('id', moduleId)
     if (error) throw error
   },
   async deleteModule(moduleId: string): Promise<void> {
@@ -148,6 +182,10 @@ export const courseService = {
   },
   async publishItem(itemId: string): Promise<void> {
     const { error } = await supabase.from('course_items').update({ publication_status: 'published' }).eq('id', itemId)
+    if (error) throw error
+  },
+  async updateDueDate(itemId: string, dueAt: string | null): Promise<void> {
+    const { error } = await supabase.from('course_items').update({ due_at: dueAt }).eq('id', itemId)
     if (error) throw error
   },
   async deleteItem(itemId: string): Promise<void> {

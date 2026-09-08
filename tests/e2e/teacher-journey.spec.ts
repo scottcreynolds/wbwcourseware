@@ -17,7 +17,7 @@ test('teacher and student complete the local-staging course journey', async ({ p
   await page.getByRole('button', { name: 'Create course' }).click()
   await page.getByLabel('Course title').fill(`Deployment course ${suffix}`)
   await page.getByRole('button', { name: 'Create', exact: true }).click()
-  await expect(page.getByRole('heading', { name: 'Course editor' })).toBeVisible()
+  await expect(page.getByText('Course details')).toBeVisible()
 
   await page.getByRole('button', { name: 'Import outline' }).click()
   await expect(page.getByLabel('Module title')).toHaveValue('Foundations')
@@ -36,22 +36,18 @@ test('teacher and student complete the local-staging course journey', async ({ p
   await expect(page.getByText('Curriculum item saved.')).toBeVisible()
   await page.getByRole('link', { name: 'Back to course' }).click()
 
-  await page.getByRole('button', { name: 'Create cohort' }).click()
-  await page.getByLabel('Cohort title').fill(`Deployment cohort ${suffix}`)
-  await page.getByLabel('Start date').fill('2026-09-01')
-  await page.getByLabel('End date').fill('2026-12-15')
-  await page.getByRole('button', { name: 'Create snapshot' }).click()
-  await expect(page.getByRole('heading', { name: 'Cohort dashboard' })).toBeVisible()
-
-  const cohortStatus = page.getByRole('combobox', { name: 'Status' })
-  await page.locator('.v-select').first().click()
+  const courseStatus = page.getByRole('combobox', { name: 'Status' })
+  await page.locator('.v-select').nth(3).click()
   await page.getByRole('option', { name: 'active', exact: true }).click()
-  await expect(cohortStatus).toHaveValue('active')
-  await page.getByRole('button', { name: 'Save', exact: true }).click()
-  await expect(page.getByText('Cohort saved.')).toBeVisible()
+  await expect(courseStatus).toHaveValue('active')
+  await page.getByRole('button', { name: 'Save course' }).click()
+  await expect(page.getByText('Course details saved.')).toBeVisible()
+
+  await page.getByRole('tab', { name: 'Release & due dates' }).click()
   await page.getByRole('button', { name: 'Release now' }).click()
   await expect(page.getByText('Module release updated.')).toBeVisible()
 
+  await page.getByRole('tab', { name: 'Students' }).click()
   const studentEmail = `student-${suffix}@local.test`
   const studentPassword = 'LocalStudentPass123!'
   await page.getByLabel('Student email').fill(studentEmail)
@@ -74,7 +70,7 @@ test('teacher and student complete the local-staging course journey', async ({ p
   await studentPage.getByLabel('Password', { exact: true }).fill(studentPassword)
   await studentPage.getByRole('button', { name: 'Sign in' }).click()
   await expect(studentPage.getByRole('heading', { name: 'My courses' })).toBeVisible()
-  await studentPage.getByText(`Deployment cohort ${suffix}`, { exact: true }).click()
+  await studentPage.getByText(`Deployment course ${suffix}`, { exact: true }).click()
   await expect(studentPage.getByText('Scene Analysis', { exact: true })).toBeVisible()
   await studentPage.getByText('Scene Analysis', { exact: true }).click()
   await expect(studentPage.getByText('Submit your scene analysis')).toBeVisible()
@@ -94,9 +90,9 @@ test('teacher and student complete the local-staging course journey', async ({ p
   await page.getByRole('button', { name: 'Sign in' }).click()
   await expect(page.getByRole('heading', { name: 'Teacher dashboard' })).toBeVisible()
   await page.getByText(`Deployment course ${suffix}`, { exact: true }).click()
-  await page.getByText(`Deployment cohort ${suffix}`, { exact: true }).click()
   await expect(page.getByText(studentEmail, { exact: true })).toBeVisible()
   const announcements = page.getByRole('region', { name: 'Announcements' })
+  await page.getByRole('tab', { name: 'Announcements' }).click()
   await announcements.getByLabel('Title', { exact: true }).fill(`Local announcement ${suffix}`)
   await announcements.getByLabel('Message (Markdown)').fill('Local delivery check')
   await announcements.getByRole('button', { name: 'Publish now' }).click()
@@ -108,14 +104,16 @@ test('teacher and student complete the local-staging course journey', async ({ p
   await studentPage.getByLabel('Message (Markdown)').fill('Student discussion message')
   await studentPage.getByRole('button', { name: 'Post topic' }).click()
   await expect(studentPage.getByText(`Workshop topic ${suffix}`, { exact: true })).toBeVisible()
-  await page.getByText('Scene Analysis', { exact: true }).last().click()
+
+  await page.getByRole('tab', { name: 'Release & due dates' }).click()
   await expect(page.getByText(/Local Student · 1 version/)).toBeVisible()
 
+  await page.getByRole('tab', { name: 'Students' }).click()
   page.once('dialog', async (dialog) => dialog.accept())
   await page.getByRole('button', { name: 'Remove', exact: true }).click()
   await expect(page.getByText('Student removed.')).toBeVisible()
   await studentPage.getByRole('link', { name: 'My courses' }).click()
-  await expect(studentPage.getByText('No cohorts yet')).toBeVisible()
+  await expect(studentPage.getByText('No courses yet')).toBeVisible()
 
   await studentContext.close()
 })

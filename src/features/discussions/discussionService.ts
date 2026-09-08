@@ -8,14 +8,14 @@ async function currentUserId(): Promise<string> {
 }
 
 export const discussionService = {
-  async list(cohortId: string): Promise<DiscussionTopic[]> {
-    const { data, error } = await supabase.rpc('get_cohort_discussions', { target_cohort_id: cohortId })
+  async list(courseId: string): Promise<DiscussionTopic[]> {
+    const { data, error } = await supabase.rpc('get_course_discussions', { target_course_id: courseId })
     if (error) throw error
     return data as DiscussionTopic[]
   },
-  async createTopic(cohortId: string, title: string, bodyMarkdown: string): Promise<void> {
+  async createTopic(courseId: string, title: string, bodyMarkdown: string): Promise<void> {
     const { error } = await supabase.from('discussion_topics').insert({
-      cohort_id: cohortId, author_id: await currentUserId(), title, body_markdown: bodyMarkdown,
+      course_id: courseId, author_id: await currentUserId(), title, body_markdown: bodyMarkdown,
     })
     if (error) throw error
   },

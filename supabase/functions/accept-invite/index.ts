@@ -13,7 +13,7 @@ Deno.serve(async request=>{
   if(token.length<20)return jsonResponse({error:'Invitation is invalid or expired'},400)
   const tokenHash=hex(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(token)))
   const admin=createClient(url,service,{auth:{persistSession:false,autoRefreshToken:false}})
-  const {data:invitation}=await admin.from('cohort_invitations').select('id,email_normalized,status,expires_at').eq('token_hash',tokenHash).maybeSingle()
+  const {data:invitation}=await admin.from('course_invitations').select('id,email_normalized,status,expires_at').eq('token_hash',tokenHash).maybeSingle()
   if(!invitation||invitation.status!=='pending'||Date.parse(invitation.expires_at)<=Date.now())return jsonResponse({error:'Invitation is invalid or expired'},400)
   let userId:string|undefined,userEmail:string|undefined
   const authorization=request.headers.get('authorization')
@@ -25,7 +25,7 @@ Deno.serve(async request=>{
     userId=data.user.id;userEmail=data.user.email
   }
   if(userEmail?.trim().toLowerCase()!==invitation.email_normalized)return jsonResponse({error:'Signed-in account does not match invitation'},403)
-  const {error}=await admin.rpc('activate_cohort_invitation',{target_invitation_id:invitation.id,target_student_id:userId,target_email:userEmail})
+  const {error}=await admin.rpc('activate_course_invitation',{target_invitation_id:invitation.id,target_student_id:userId,target_email:userEmail})
   if(error)return jsonResponse({error:'Invitation could not be accepted'},400)
   return jsonResponse({status:'accepted'})
 })

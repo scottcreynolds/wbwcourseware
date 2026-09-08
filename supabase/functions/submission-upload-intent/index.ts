@@ -21,7 +21,7 @@ Deno.serve(async (request) => {
   const [{ data: profile }, { data: readable }, { data: item }] = await Promise.all([
     context.admin.from('profiles').select('role').eq('id', context.user.id).single(),
     context.caller.rpc('student_can_read_item', { target_item_id: itemId }),
-    context.admin.from('cohort_items').select('kind').eq('id', itemId).single(),
+    context.admin.from('course_items').select('kind').eq('id', itemId).single(),
   ])
   if (profile?.role !== 'student' || !readable || item?.kind !== 'assignment') {
     return jsonResponse({ error: 'Not authorized' }, 403)

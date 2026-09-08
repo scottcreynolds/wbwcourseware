@@ -22,7 +22,7 @@ Deno.serve(async (request) => {
   const [{ data: profile }, { data: readable }, { data: item }] = await Promise.all([
     context.admin.from('profiles').select('role').eq('id', context.user.id).single(),
     itemId ? context.caller.rpc('student_can_read_item', { target_item_id: itemId }) : Promise.resolve({ data: false }),
-    itemId ? context.admin.from('cohort_items').select('kind').eq('id', itemId).single() : Promise.resolve({ data: null }),
+    itemId ? context.admin.from('course_items').select('kind').eq('id', itemId).single() : Promise.resolve({ data: null }),
   ])
   if (!itemId || !validFiles) return jsonResponse({ error: 'Assignment and uploaded files are required' }, 400)
   if (profile?.role !== 'student' || !readable || item?.kind !== 'assignment') return jsonResponse({ error: 'Not authorized' }, 403)

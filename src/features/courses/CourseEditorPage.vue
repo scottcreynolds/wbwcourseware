@@ -4,9 +4,12 @@ import { useRoute, useRouter } from 'vue-router'
 import { courseService } from '@/features/courses/courseService'
 import { parseCourseOutline } from '@/features/courses/outlineParser'
 import { slugify } from '@/features/courses/slug'
-import type { CourseItem, CourseModule, CourseStatus, CourseWorkspace, CurriculumItemKind } from '@/types/course'
-import { cohortService } from '@/features/cohorts/cohortService'
-import type { Cohort } from '@/types/cohort'
+import { enrollmentService } from '@/features/enrollment/enrollmentService'
+import type { CourseEnrollment, CourseInvitation } from '@/types/enrollment'
+import type { CourseItem, CourseModule, CourseStatus, CourseWorkspace, CurriculumItemKind, ReleaseMode } from '@/types/course'
+import AnnouncementList from '@/features/announcements/AnnouncementList.vue'
+import DiscussionBoard from '@/features/discussions/DiscussionBoard.vue'
+import SubmissionPanel from '@/features/submissions/SubmissionPanel.vue'
 import MarkdownContent from '@/shared/MarkdownContent.vue'
 
 const route = useRoute()
@@ -41,8 +44,15 @@ const outlineSource = ref(`# Module: Foundations
 ## Lecture: What a Scene Does
 ## Assignment: Scene Analysis`)
 const outlineResult = computed(() => parseCourseOutline(outlineSource.value))
-const cohorts=ref<Cohort[]>([])
-const cohortDialog=ref(false),cohortTitle=ref(''),cohortStart=ref(''),cohortEnd=ref(''),cohortTimezone=ref('America/New_York')
+const duplicateDialog = ref(false)
+const duplicateTitle = ref('')
+
+const invitations = ref<CourseInvitation[]>([])
+const enrollments = ref<CourseEnrollment[]>([])
+const inviteEmail = ref('')
+const localInviteUrl = ref<string | null>(null)
+
+const assignments = computed(() => workspace.value?.items.filter((item) => item.kind === 'assignment') ?? [])
 
 function itemById(id: string): CourseItem | undefined {
   return workspace.value?.items.find((item) => item.id === id)
@@ -78,8 +88,14 @@ function moveTargetOptions(itemId: string): CourseModule[] {
 async function refresh(): Promise<void> {
   errorMessage.value = null
   try {
-    workspace.value = await courseService.loadWorkspace(courseId)
-    cohorts.value = await cohortService.listForCourse(courseId)
+    const [ws, inv, enr] = await Promise.all([
+      courseService.loadWorkspace(courseId),
+      enrollmentService.listInvitations(courseId),
+      enrollmentService.listEnrollments(courseId),
+    ])
+    workspace.value = ws
+    invitations.value = inv
+    enrollments.value = enr
   } catch {
     errorMessage.value = 'Course could not be loaded or you do not have access.'
   }
@@ -108,7 +124,19 @@ async function run(action: () => Promise<void>, success: string): Promise<void> 
 async function saveCourse(): Promise<void> {
   if (!workspace.value) return
   const course = workspace.value.course
-  await run(() => courseService.updateCourse(courseId, { title: course.title.trim(), description: course.description, status: course.status }), 'Course details saved.')
+  await run(
+    () =>
+      courseService.updateCourse(courseId, {
+        title: course.title.trim(),
+        description: course.description,
+        status: course.status,
+        start_date: course.start_date,
+        end_date: course.end_date,
+        timezone: course.timezone,
+        intro_markdown: course.intro_markdown,
+      }),
+    'Course details saved.',
+  )
 }
 
 async function addModule(): Promise<void> {
@@ -131,7 +159,7 @@ async function updateModule(): Promise<void> {
 }
 
 async function deleteModule(module: CourseModule): Promise<void> {
-  if (!window.confirm(`Delete module “${module.title}”?`)) return
+  if (!window.confirm(`Delete module "${module.title}"?`)) return
   await run(() => courseService.deleteModule(module.id), 'Module deleted.')
 }
 
@@ -143,6 +171,28 @@ async function moveModule(module: CourseModule, direction: -1 | 1): Promise<void
   if (target < 0 || target >= ordered.length) return
   ;[ordered[index], ordered[target]] = [ordered[target]!, ordered[index]!]
   await run(() => courseService.reorderModules(courseId, ordered.map((entry) => entry.id)), 'Modules reordered.')
+}
+
+async function saveModuleRelease(module: CourseModule): Promise<void> {
+  const releaseAt = module.release_mode === 'scheduled' && module.release_at ? new Date(module.release_at).toISOString() : null
+  await run(
+    () =>
+      courseService.updateModuleRelease(module.id, {
+        release_mode: module.release_mode,
+        release_at: releaseAt,
+        manually_released_at: module.release_mode === 'manual' ? module.manually_released_at : null,
+      }),
+    'Module release updated.',
+  )
+}
+
+function toggleManualRelease(module: CourseModule): void {
+  module.manually_released_at = module.manually_released_at ? null : new Date().toISOString()
+  void saveModuleRelease(module)
+}
+
+async function saveDueDate(item: CourseItem): Promise<void> {
+  await run(() => courseService.updateDueDate(item.id, item.due_at ? new Date(item.due_at).toISOString() : null), 'Due date saved.')
 }
 
 function openItemDialog(moduleId: string): void {
@@ -191,7 +241,7 @@ async function moveItemToModule(): Promise<void> {
 }
 
 async function publishItem(item: CourseItem): Promise<void> {
-  await run(() => courseService.publishItem(item.id), `“${item.title}” published.`)
+  await run(() => courseService.publishItem(item.id), `"${item.title}" published.`)
 }
 
 function openPreview(item: CourseItem): void {
@@ -228,7 +278,38 @@ async function importOutline(): Promise<void> {
   outlineDialog.value = false
 }
 
-async function createCohort():Promise<void>{if(!cohortTitle.value||!cohortStart.value||!cohortEnd.value)return;let newId='';await run(async()=>{newId=await cohortService.createFromCourse({courseId,title:cohortTitle.value,startDate:cohortStart.value,endDate:cohortEnd.value,timezone:cohortTimezone.value})},'Cohort created.');cohortDialog.value=false;if(newId)await router.push(`/teacher/cohorts/${newId}`)}
+async function duplicateCourse(): Promise<void> {
+  if (!duplicateTitle.value.trim()) return
+  let newId = ''
+  await run(async () => {
+    newId = await courseService.duplicateCourse(courseId, duplicateTitle.value.trim())
+  }, 'Course duplicated.')
+  duplicateDialog.value = false
+  if (newId) await router.push(`/teacher/courses/${newId}`)
+}
+
+async function invite(): Promise<void> {
+  if (!inviteEmail.value) return
+  try {
+    const result = await enrollmentService.invite(courseId, inviteEmail.value)
+    localInviteUrl.value = result.developmentInviteUrl ?? null
+    inviteEmail.value = ''
+    notice.value = result.emailStatus === 'sent' ? 'Invitation sent.' : 'Invitation created.'
+    await refresh()
+  } catch {
+    errorMessage.value = 'Invitation could not be created.'
+  }
+}
+
+async function revoke(invitationId: string): Promise<void> {
+  await run(() => enrollmentService.revoke(invitationId), 'Invitation revoked.')
+}
+
+async function removeStudent(enrollmentId: string): Promise<void> {
+  if (window.confirm('Remove this student from the course? Their records will remain.')) {
+    await run(() => enrollmentService.remove(enrollmentId), 'Student removed.')
+  }
+}
 
 onMounted(load)
 </script>
@@ -237,19 +318,42 @@ onMounted(load)
   <v-alert v-if="errorMessage" type="error" class="mb-4" role="alert">{{ errorMessage }}</v-alert>
   <v-skeleton-loader v-if="loading" type="article, list-item-three-line@2" />
   <template v-else-if="workspace">
-    <div class="section-heading mb-4"><v-btn to="/teacher" variant="text" prepend-icon="mdi-arrow-left">All courses</v-btn></div>
+    <div class="section-heading mb-4">
+      <v-btn to="/teacher" variant="text" prepend-icon="mdi-arrow-left">All courses</v-btn>
+      <v-btn variant="outlined" prepend-icon="mdi-content-copy" @click="duplicateDialog = true">Duplicate course</v-btn>
+    </div>
     <v-card border class="mb-6">
       <v-card-title>Course details</v-card-title>
       <v-card-text>
         <v-text-field v-model="workspace.course.title" label="Title" />
         <v-textarea v-model="workspace.course.description" label="Description" rows="3" />
-        <v-select v-model="workspace.course.status" label="Status" :items="(['draft', 'active', 'archived'] satisfies CourseStatus[])" />
+        <div class="editor-meta-grid">
+          <v-text-field v-model="workspace.course.start_date" type="date" label="Start date" />
+          <v-text-field v-model="workspace.course.end_date" type="date" label="End date" />
+          <v-text-field v-model="workspace.course.timezone" label="IANA timezone" hint="Example: America/New_York" />
+          <v-select v-model="workspace.course.status" label="Status" :items="(['draft', 'active', 'archived'] satisfies CourseStatus[])" />
+        </div>
+        <v-textarea
+          v-model="workspace.course.intro_markdown"
+          label="Intro (Markdown)"
+          rows="8"
+          class="monospace-input mt-2"
+          hint="Shown to students at the top of their course page. Use it for meeting times, location, and a welcome message."
+          persistent-hint
+        />
       </v-card-text>
       <v-card-actions><v-btn color="primary" :loading="saving" @click="saveCourse">Save course</v-btn></v-card-actions>
     </v-card>
+    <v-card v-if="workspace.course.intro_markdown.trim()" border class="mb-6">
+      <v-card-title>Intro preview</v-card-title>
+      <v-card-text><MarkdownContent :source="workspace.course.intro_markdown" /></v-card-text>
+    </v-card>
     <v-tabs v-model="activeTab" class="mb-4">
       <v-tab value="modules">Modules</v-tab>
-      <v-tab value="cohorts">Cohorts</v-tab>
+      <v-tab value="release">Release &amp; due dates</v-tab>
+      <v-tab value="students">Students</v-tab>
+      <v-tab value="announcements">Announcements</v-tab>
+      <v-tab value="discussions">Discussions</v-tab>
     </v-tabs>
     <v-window v-model="activeTab">
       <v-window-item value="modules">
@@ -305,15 +409,65 @@ onMounted(load)
           </v-expansion-panel>
         </v-expansion-panels>
       </v-window-item>
-      <v-window-item value="cohorts">
-        <div class="section-heading mb-4">
-          <h2>Cohorts</h2>
-          <v-btn color="primary" @click="cohortDialog=true">Create cohort</v-btn>
-        </div>
-        <v-list v-if="cohorts.length" lines="two">
-          <v-list-item v-for="cohort in cohorts" :key="cohort.id" :to="`/teacher/cohorts/${cohort.id}`" :title="cohort.title" :subtitle="`${cohort.start_date}–${cohort.end_date} · ${cohort.status}`" />
+      <v-window-item value="release">
+        <h2 class="mb-3">Module release</h2>
+        <v-card v-for="module in workspace.modules" :key="module.id" border class="mb-3">
+          <v-card-title>{{ module.title }}</v-card-title>
+          <v-card-text>
+            <v-select v-model="module.release_mode" :items="(['manual', 'scheduled'] satisfies ReleaseMode[])" label="Release method" />
+            <v-text-field v-if="module.release_mode === 'scheduled'" v-model="module.release_at" type="datetime-local" label="Release date and time" />
+            <v-btn v-else variant="outlined" @click="toggleManualRelease(module)">{{ module.manually_released_at ? 'Lock module' : 'Release now' }}</v-btn>
+          </v-card-text>
+          <v-card-actions v-if="module.release_mode === 'scheduled'"><v-btn color="primary" @click="saveModuleRelease(module)">Save schedule</v-btn></v-card-actions>
+        </v-card>
+        <h2 class="mt-6 mb-3">Assignment due dates</h2>
+        <v-card v-for="item in assignments" :key="item.id" border class="mb-3">
+          <v-card-title>{{ item.title }}</v-card-title>
+          <v-card-text><v-text-field v-model="item.due_at" type="datetime-local" label="Due date and time" /></v-card-text>
+          <v-card-actions><v-btn color="primary" @click="saveDueDate(item)">Save due date</v-btn></v-card-actions>
+        </v-card>
+        <h2 class="mt-6 mb-3">Submission review</h2>
+        <v-expansion-panels multiple>
+          <v-expansion-panel v-for="item in assignments" :key="item.id">
+            <v-expansion-panel-title>{{ item.title }}</v-expansion-panel-title>
+            <v-expansion-panel-text><SubmissionPanel :item-id="item.id" /></v-expansion-panel-text>
+          </v-expansion-panel>
+        </v-expansion-panels>
+      </v-window-item>
+      <v-window-item value="students">
+        <v-card border class="mb-4">
+          <v-card-title>Invite student</v-card-title>
+          <v-card-text>
+            <div class="invite-row"><v-text-field v-model="inviteEmail" type="email" label="Student email" /><v-btn color="primary" @click="invite">Send invite</v-btn></div>
+            <v-alert v-if="localInviteUrl" type="info">Local invite link: <a :href="localInviteUrl">{{ localInviteUrl }}</a></v-alert>
+          </v-card-text>
+        </v-card>
+        <v-list border rounded>
+          <v-list-subheader>Enrolled</v-list-subheader>
+          <v-list-item
+            v-for="enrollment in enrollments"
+            :key="enrollment.id"
+            :title="enrollment.profiles?.display_name || enrollment.profiles?.email_normalized || 'Student'"
+            :subtitle="enrollment.status"
+          >
+            <template #append><v-btn v-if="enrollment.status === 'active'" color="error" variant="text" @click="removeStudent(enrollment.id)">Remove</v-btn></template>
+          </v-list-item>
+          <v-list-subheader>Invitations</v-list-subheader>
+          <v-list-item
+            v-for="invitation in invitations"
+            :key="invitation.id"
+            :title="invitation.email_normalized"
+            :subtitle="`${invitation.status} · expires ${new Date(invitation.expires_at).toLocaleDateString()}`"
+          >
+            <template #append><v-btn v-if="invitation.status === 'pending'" variant="text" @click="revoke(invitation.id)">Revoke</v-btn></template>
+          </v-list-item>
         </v-list>
-        <p v-else>No cohorts created from this course.</p>
+      </v-window-item>
+      <v-window-item value="announcements">
+        <AnnouncementList :course-id="courseId" teacher />
+      </v-window-item>
+      <v-window-item value="discussions">
+        <DiscussionBoard :course-id="courseId" teacher />
       </v-window-item>
     </v-window>
   </template>
@@ -355,6 +509,14 @@ onMounted(load)
       <v-card-actions><v-spacer /><v-btn @click="outlineDialog = false">Cancel</v-btn><v-btn color="primary" :disabled="outlineResult.errors.length > 0" :loading="saving" @click="importOutline">Import</v-btn></v-card-actions>
     </v-card>
   </v-dialog>
-  <v-dialog v-model="cohortDialog" max-width="40rem"><v-card title="Create cohort from course"><v-card-text><v-text-field v-model="cohortTitle" label="Cohort title" /><div class="editor-meta-grid"><v-text-field v-model="cohortStart" type="date" label="Start date" /><v-text-field v-model="cohortEnd" type="date" label="End date" /></div><v-text-field v-model="cohortTimezone" label="IANA timezone" hint="Example: America/New_York" /></v-card-text><v-card-actions><v-spacer /><v-btn @click="cohortDialog=false">Cancel</v-btn><v-btn color="primary" :disabled="!cohortTitle||!cohortStart||!cohortEnd" @click="createCohort">Create snapshot</v-btn></v-card-actions></v-card></v-dialog>
+  <v-dialog v-model="duplicateDialog" max-width="32rem">
+    <v-card title="Duplicate course">
+      <v-card-text>
+        <p class="mb-3 text-medium-emphasis">Creates a new draft course with a copy of this course's modules, items, and resources. Release schedule and due dates reset; enrollment is not copied.</p>
+        <v-text-field v-model="duplicateTitle" label="New course title" autofocus @keyup.enter="duplicateCourse" />
+      </v-card-text>
+      <v-card-actions><v-spacer /><v-btn @click="duplicateDialog = false">Cancel</v-btn><v-btn color="primary" :disabled="!duplicateTitle.trim()" :loading="saving" @click="duplicateCourse">Duplicate</v-btn></v-card-actions>
+    </v-card>
+  </v-dialog>
   <v-snackbar :model-value="notice !== null" timeout="2500" @update:model-value="notice = $event ? notice : null">{{ notice }}</v-snackbar>
 </template>

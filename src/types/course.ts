@@ -1,6 +1,7 @@
 export type CourseStatus = 'draft' | 'active' | 'archived'
 export type CurriculumItemKind = 'lecture' | 'assignment'
 export type PublicationStatus = 'draft' | 'published'
+export type ReleaseMode = 'manual' | 'scheduled'
 
 export type Course = {
   id: string
@@ -9,6 +10,10 @@ export type Course = {
   description: string
   status: CourseStatus
   branding_json: Record<string, unknown>
+  start_date: string
+  end_date: string
+  timezone: string
+  intro_markdown: string
   created_at: string
   updated_at: string
 }
@@ -19,6 +24,9 @@ export type CourseModule = {
   title: string
   description: string
   position: number
+  release_mode: ReleaseMode
+  release_at: string | null
+  manually_released_at: string | null
   created_at: string
   updated_at: string
 }
@@ -31,6 +39,7 @@ export type CourseItem = {
   slug: string
   body_markdown: string
   publication_status: PublicationStatus
+  due_at: string | null
   created_at: string
   updated_at: string
 }
@@ -59,4 +68,3 @@ export type CourseWorkspace = {
   items: CourseItem[]
   placements: ModuleItemPlacement[]
 }
-

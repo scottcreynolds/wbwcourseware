@@ -7,7 +7,7 @@ type Delivery = {
   recipient: string
   announcement_title: string
   announcement_body: string
-  cohort_title: string
+  course_title: string
   attempts: number
 }
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
@@ -52,7 +52,7 @@ Deno.serve(async (request) => {
         body: JSON.stringify({
           from: Deno.env.get('EMAIL_FROM'),
           to: [delivery.recipient],
-          subject: `${delivery.cohort_title}: ${delivery.announcement_title}`,
+          subject: `${delivery.course_title}: ${delivery.announcement_title}`,
           html: `<h1>${escapeHtml(delivery.announcement_title)}</h1><p>${escapeHtml(delivery.announcement_body).replaceAll('\n', '<br>')}</p>`,
         }),
       })
