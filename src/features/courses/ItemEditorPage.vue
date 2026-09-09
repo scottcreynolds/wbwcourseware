@@ -16,6 +16,7 @@ const loading = ref(true)
 const saving = ref(false)
 const errorMessage = ref<string | null>(null)
 const notice = ref<string | null>(null)
+const uploadingAsset = ref(false)
 const resourceTitle = ref('')
 const resourceUrl = ref('')
 const resourceDialog = ref(false)
@@ -75,6 +76,31 @@ async function importMarkdown(event: Event): Promise<void> {
   input.value = ''
 }
 
+const ALLOWED_ASSET_MIME_TYPES = new Set(['image/png', 'image/jpeg', 'image/gif', 'image/webp', 'application/pdf'])
+const MAX_ASSET_BYTES = 10 * 1024 * 1024
+
+async function uploadAsset(event: Event): Promise<void> {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (!file || !item.value) return
+  if (!ALLOWED_ASSET_MIME_TYPES.has(file.type) || file.size > MAX_ASSET_BYTES) {
+    errorMessage.value = 'Choose a PNG, JPEG, GIF, WebP, or PDF file no larger than 10 MB.'
+    input.value = ''
+    return
+  }
+  uploadingAsset.value = true
+  try {
+    const { publicUrl } = await courseService.uploadCurriculumAsset(file)
+    const snippet = file.type === 'application/pdf' ? `[${file.name}](${publicUrl})` : `![](${publicUrl})`
+    item.value.body_markdown = `${item.value.body_markdown}\n\n${snippet}\n`
+  } catch {
+    errorMessage.value = 'File could not be uploaded.'
+  } finally {
+    uploadingAsset.value = false
+    input.value = ''
+  }
+}
+
 async function addResource(): Promise<void> {
   if (!resourceTitle.value.trim() || !resourceUrl.value.trim()) return
   saving.value = true
@@ -122,6 +148,7 @@ onMounted(load)
         <div class="editor-meta-grid"><v-text-field v-model="item.title" label="Title" /><v-select v-model="item.kind" label="Type" :items="(['lecture', 'assignment'] satisfies CurriculumItemKind[])" /><v-select v-model="item.publication_status" label="Status" :items="(['draft', 'published'] satisfies PublicationStatus[])" /></div>
         <v-text-field v-if="item.kind === 'assignment'" v-model="item.due_at" type="datetime-local" label="Due date and time" class="mb-2" />
         <label class="file-button"><span>Import Markdown</span><input type="file" accept=".md,text/markdown,text/plain" @change="importMarkdown"></label>
+        <label class="file-button"><span>{{ uploadingAsset ? 'Uploading…' : 'Upload image or PDF' }}</span><input type="file" accept="image/png,image/jpeg,image/gif,image/webp,application/pdf" :disabled="uploadingAsset" @change="uploadAsset"></label>
         <v-textarea v-model="item.body_markdown" label="Markdown and sanitized HTML" rows="18" class="monospace-input" />
       </v-card-text>
       <v-card-actions><v-btn color="primary" :loading="saving" @click="save">Save</v-btn><v-spacer /><v-btn color="error" variant="text" @click="deleteItem">Delete item</v-btn></v-card-actions>

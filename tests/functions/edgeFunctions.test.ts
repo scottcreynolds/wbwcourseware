@@ -23,6 +23,7 @@ describe('Edge Function HTTP boundaries', () => {
   })
 
   test.each([
+    'curriculum-asset-upload-intent',
     'finalize-submission',
     'invite-student',
     'publish-announcement',

@@ -216,4 +216,17 @@ export const courseService = {
     })
     if (error) throw error
   },
+  async uploadCurriculumAsset(file: File): Promise<{ publicUrl: string }> {
+    const { data, error: invokeError } = await supabase.functions.invoke<{ path: string; token: string }>(
+      'curriculum-asset-upload-intent',
+      { body: { mimeType: file.type, byteSize: file.size } },
+    )
+    if (invokeError || !data) throw invokeError ?? new Error('Upload could not be prepared')
+    const { error: uploadError } = await supabase.storage
+      .from('curriculum-assets')
+      .uploadToSignedUrl(data.path, data.token, file, { contentType: file.type })
+    if (uploadError) throw uploadError
+    const { data: publicUrlData } = supabase.storage.from('curriculum-assets').getPublicUrl(data.path)
+    return { publicUrl: publicUrlData.publicUrl }
+  },
 }

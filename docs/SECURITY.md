@@ -33,10 +33,16 @@ Teacher content is still untrusted input.
 
 ## Files
 
-- Private buckets only.
+- Private buckets only, with one deliberate exception: `curriculum-assets`
+  (see ADR-007) is public-read because teacher-authored lesson images/PDFs
+  must render for every enrolled student on every page view from a URL
+  stored in Markdown — a short-lived signed URL cannot support that.
+  Writes to it are still teacher-only and authorized server-side; only
+  reads are unauthenticated.
 - Random server-controlled paths; never trust original filename as path.
 - Validate PDF MIME, extension, magic bytes where feasible, and size.
-- Signed URLs short-lived and issued only after authorization.
+- Signed URLs short-lived and issued only after authorization (applies
+  to uploads on every bucket, and to downloads on private buckets).
 - Consider malware scanning as production hardening/fast follow.
 - Set safe content disposition and headers.
 
