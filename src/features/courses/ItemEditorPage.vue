@@ -40,6 +40,9 @@ async function save(): Promise<void> {
   errorMessage.value = null
   try {
     await courseService.updateItem(itemId, { title: item.value.title.trim(), kind: item.value.kind, body_markdown: item.value.body_markdown, publication_status: item.value.publication_status })
+    if (item.value.kind === 'assignment') {
+      await courseService.updateDueDate(itemId, item.value.due_at ? new Date(item.value.due_at).toISOString() : null)
+    }
     notice.value = 'Curriculum item saved.'
   } catch {
     errorMessage.value = 'Curriculum item could not be saved.'
@@ -111,6 +114,7 @@ onMounted(load)
     <v-card border class="mb-6">
       <v-card-text>
         <div class="editor-meta-grid"><v-text-field v-model="item.title" label="Title" /><v-select v-model="item.kind" label="Type" :items="(['lecture', 'assignment'] satisfies CurriculumItemKind[])" /><v-select v-model="item.publication_status" label="Status" :items="(['draft', 'published'] satisfies PublicationStatus[])" /></div>
+        <v-text-field v-if="item.kind === 'assignment'" v-model="item.due_at" type="datetime-local" label="Due date and time" class="mb-2" />
         <label class="file-button"><span>Import Markdown</span><input type="file" accept=".md,text/markdown,text/plain" @change="importMarkdown"></label>
         <v-textarea v-model="item.body_markdown" label="Markdown and sanitized HTML" rows="18" class="monospace-input" />
       </v-card-text>
