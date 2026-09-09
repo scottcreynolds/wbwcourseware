@@ -3,11 +3,13 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { pageTitleOverride } from '@/app/pageTitle'
 import { courseService } from '@/features/courses/courseService'
+import { datetimeLocalToIso, isoToDatetimeLocal } from '@/features/courses/datetimeLocal'
+import { formatCourseDate } from '@/features/learning/dateFormat'
 import { parseCourseOutline } from '@/features/courses/outlineParser'
 import { slugify } from '@/features/courses/slug'
 import { enrollmentService } from '@/features/enrollment/enrollmentService'
 import type { CourseEnrollment, CourseInvitation } from '@/types/enrollment'
-import type { CourseItem, CourseModule, CourseStatus, CourseWorkspace, CurriculumItemKind, ReleaseMode } from '@/types/course'
+import type { CourseItem, CourseModule, CourseStatus, CourseWorkspace, CurriculumItemKind } from '@/types/course'
 import AnnouncementList from '@/features/announcements/AnnouncementList.vue'
 import DiscussionBoard from '@/features/discussions/DiscussionBoard.vue'
 import SubmissionPanel from '@/features/submissions/SubmissionPanel.vue'
@@ -200,26 +202,34 @@ async function moveModule(module: CourseModule, direction: -1 | 1): Promise<void
   await run(() => courseService.reorderModules(courseId, ordered.map((entry) => entry.id)), 'Modules reordered.')
 }
 
-async function saveModuleRelease(module: CourseModule): Promise<void> {
-  const releaseAt = module.release_mode === 'scheduled' && module.release_at ? new Date(module.release_at).toISOString() : null
+function isModuleReleased(module: CourseModule): boolean {
+  return module.release_mode === 'scheduled'
+    ? Boolean(module.release_at && new Date(module.release_at) <= new Date())
+    : Boolean(module.manually_released_at)
+}
+
+async function toggleModuleRelease(module: CourseModule): Promise<void> {
+  const released = isModuleReleased(module)
+  module.release_mode = 'manual'
+  module.release_at = null
+  module.manually_released_at = released ? null : new Date().toISOString()
   await run(
     () =>
       courseService.updateModuleRelease(module.id, {
-        release_mode: module.release_mode,
-        release_at: releaseAt,
-        manually_released_at: module.release_mode === 'manual' ? module.manually_released_at : null,
+        release_mode: 'manual',
+        release_at: null,
+        manually_released_at: module.manually_released_at,
       }),
-    'Module release updated.',
+    released ? `"${module.title}" locked.` : `"${module.title}" released.`,
   )
 }
 
-function toggleManualRelease(module: CourseModule): void {
-  module.manually_released_at = module.manually_released_at ? null : new Date().toISOString()
-  void saveModuleRelease(module)
+function setDueAtLocal(item: CourseItem, value: string): void {
+  item.due_at = datetimeLocalToIso(value)
 }
 
 async function saveDueDate(item: CourseItem): Promise<void> {
-  await run(() => courseService.updateDueDate(item.id, item.due_at ? new Date(item.due_at).toISOString() : null), 'Due date saved.')
+  await run(() => courseService.updateDueDate(item.id, item.due_at), 'Due date saved.')
 }
 
 function openItemDialog(moduleId: string): void {
@@ -277,18 +287,6 @@ async function publishAllInModule(module: CourseModule): Promise<void> {
   await run(
     () => Promise.all(drafts.map((item) => courseService.publishItem(item.id))).then(() => undefined),
     `Published ${drafts.length} item${drafts.length === 1 ? '' : 's'} in "${module.title}".`,
-  )
-}
-
-async function releaseModuleNow(module: CourseModule): Promise<void> {
-  await run(
-    () =>
-      courseService.updateModuleRelease(module.id, {
-        release_mode: 'manual',
-        release_at: null,
-        manually_released_at: new Date().toISOString(),
-      }),
-    `"${module.title}" released.`,
   )
 }
 
@@ -380,7 +378,7 @@ onMounted(load)
     <v-tabs v-model="activeTab" class="mb-4">
       <v-tab value="details">Details</v-tab>
       <v-tab value="modules">Modules</v-tab>
-      <v-tab value="release">Release &amp; due dates</v-tab>
+      <v-tab value="release">Due dates</v-tab>
       <v-tab value="students">Students</v-tab>
       <v-tab value="announcements">Announcements</v-tab>
       <v-tab value="discussions">Discussions</v-tab>
@@ -425,7 +423,11 @@ onMounted(load)
         </div>
         <v-empty-state v-if="workspace.modules.length === 0" headline="No modules yet" text="Add one module or import your whole outline." />
         <v-expansion-panels v-else v-model="expandedModules" multiple>
-          <v-expansion-panel v-for="(module, moduleIndex) in workspace.modules" :key="module.id" :value="module.id" :title="module.title">
+          <v-expansion-panel v-for="(module, moduleIndex) in workspace.modules" :key="module.id" :value="module.id">
+            <v-expansion-panel-title>
+              {{ module.title }}
+              <v-chip size="x-small" class="ml-2" :color="isModuleReleased(module) ? 'success' : 'neutral'" variant="flat">{{ isModuleReleased(module) ? 'Released' : 'Locked' }}</v-chip>
+            </v-expansion-panel-title>
             <v-expansion-panel-text>
               <div class="row-actions mb-3">
                 <v-btn size="small" :disabled="moduleIndex === 0" @click="moveModule(module, -1)">Move up</v-btn>
@@ -436,8 +438,8 @@ onMounted(load)
                 <v-tooltip :text="itemsFor(module.id).some(item => item.publication_status === 'draft') ? 'Publish every draft item in this module' : 'All items already published'">
                   <template #activator="{ props: tooltipProps }"><v-btn v-bind="tooltipProps" size="small" color="primary" variant="tonal" :loading="saving" :disabled="!itemsFor(module.id).some(item => item.publication_status === 'draft')" @click="publishAllInModule(module)">Publish all</v-btn></template>
                 </v-tooltip>
-                <v-tooltip :text="module.manually_released_at ? 'Module is already released' : 'Release this module to students now'">
-                  <template #activator="{ props: tooltipProps }"><v-btn v-bind="tooltipProps" size="small" color="secondary" variant="tonal" :loading="saving" :disabled="Boolean(module.manually_released_at)" @click="releaseModuleNow(module)">Release</v-btn></template>
+                <v-tooltip :text="isModuleReleased(module) ? 'Lock this module from students' : 'Release this module to students now'">
+                  <template #activator="{ props: tooltipProps }"><v-btn v-bind="tooltipProps" size="small" color="secondary" variant="tonal" :loading="saving" @click="toggleModuleRelease(module)">{{ isModuleReleased(module) ? 'Lock module' : 'Release module' }}</v-btn></template>
                 </v-tooltip>
                 <v-tooltip :text="moduleOnlyItems(module.id).length ? `Move or delete first: ${moduleOnlyItems(module.id).map(item => item.title).join(', ')}` : 'Delete module'">
                   <template #activator="{ props: tooltipProps }"><v-btn v-bind="tooltipProps" size="small" color="error" variant="text" :disabled="moduleOnlyItems(module.id).length > 0" @click="deleteModule(module)">Delete module</v-btn></template>
@@ -446,7 +448,10 @@ onMounted(load)
               <v-list v-if="itemsFor(module.id).length">
                 <v-list-item v-for="(item, itemIndex) in itemsFor(module.id)" :key="item.id" :title="item.title">
                   <template #prepend><v-chip size="small" :color="item.kind === 'assignment' ? 'secondary' : undefined">{{ item.kind }}</v-chip></template>
-                  <v-list-item-subtitle><v-chip size="x-small" :color="item.publication_status === 'published' ? 'success' : 'neutral'" variant="flat">{{ item.publication_status }}</v-chip></v-list-item-subtitle>
+                  <v-list-item-subtitle>
+                    <v-chip size="x-small" :color="item.publication_status === 'published' ? 'success' : 'neutral'" variant="flat">{{ item.publication_status }}</v-chip>
+                    <v-chip v-if="item.kind === 'assignment' && item.due_at" size="x-small" variant="tonal" class="ml-1">Due {{ formatCourseDate(item.due_at, workspace.course.timezone) }}</v-chip>
+                  </v-list-item-subtitle>
                   <template #append>
                     <div class="row-actions">
                       <v-btn v-if="item.publication_status === 'draft'" size="small" color="primary" variant="tonal" :loading="saving" @click="publishItem(item)">Publish</v-btn>
@@ -478,20 +483,10 @@ onMounted(load)
         </v-expansion-panels>
       </v-window-item>
       <v-window-item value="release">
-        <h2 class="mb-3">Module release</h2>
-        <v-card v-for="module in workspace.modules" :key="module.id" border class="mb-3">
-          <v-card-title>{{ module.title }}</v-card-title>
-          <v-card-text>
-            <v-select v-model="module.release_mode" :items="(['manual', 'scheduled'] satisfies ReleaseMode[])" label="Release method" />
-            <v-text-field v-if="module.release_mode === 'scheduled'" v-model="module.release_at" type="datetime-local" label="Release date and time" />
-            <v-btn v-else variant="outlined" @click="toggleManualRelease(module)">{{ module.manually_released_at ? 'Lock module' : 'Release now' }}</v-btn>
-          </v-card-text>
-          <v-card-actions v-if="module.release_mode === 'scheduled'"><v-btn color="primary" @click="saveModuleRelease(module)">Save schedule</v-btn></v-card-actions>
-        </v-card>
-        <h2 class="mt-6 mb-3">Assignment due dates</h2>
+        <h2 class="mb-3">Assignment due dates</h2>
         <v-card v-for="item in assignments" :key="item.id" border class="mb-3">
           <v-card-title>{{ item.title }}</v-card-title>
-          <v-card-text><v-text-field v-model="item.due_at" type="datetime-local" label="Due date and time" /></v-card-text>
+          <v-card-text><v-text-field :model-value="isoToDatetimeLocal(item.due_at)" type="datetime-local" label="Due date and time" @update:model-value="(value: string) => setDueAtLocal(item, value)" /></v-card-text>
           <v-card-actions><v-btn color="primary" @click="saveDueDate(item)">Save due date</v-btn></v-card-actions>
         </v-card>
         <h2 class="mt-6 mb-3">Submission review</h2>

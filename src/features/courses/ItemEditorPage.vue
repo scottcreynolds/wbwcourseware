@@ -3,6 +3,7 @@ import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { pageTitleOverride } from '@/app/pageTitle'
 import { courseService } from '@/features/courses/courseService'
+import { datetimeLocalToIso, isoToDatetimeLocal } from '@/features/courses/datetimeLocal'
 import MarkdownContent from '@/shared/MarkdownContent.vue'
 import type { CourseItem, CourseItemResource, CurriculumItemKind, PublicationStatus } from '@/types/course'
 
@@ -20,6 +21,12 @@ const uploadingAsset = ref(false)
 const resourceTitle = ref('')
 const resourceUrl = ref('')
 const resourceDialog = ref(false)
+const dueAtLocal = computed({
+  get: () => isoToDatetimeLocal(item.value?.due_at ?? null),
+  set: (value: string) => {
+    if (item.value) item.value.due_at = datetimeLocalToIso(value)
+  },
+})
 const maxResourcePosition = computed(() => Math.max(-1, ...resources.value.map((resource) => resource.position)))
 
 async function load(): Promise<void> {
@@ -43,7 +50,7 @@ async function save(): Promise<void> {
   try {
     await courseService.updateItem(itemId, { title: item.value.title.trim(), kind: item.value.kind, body_markdown: item.value.body_markdown, publication_status: item.value.publication_status })
     if (item.value.kind === 'assignment') {
-      await courseService.updateDueDate(itemId, item.value.due_at ? new Date(item.value.due_at).toISOString() : null)
+      await courseService.updateDueDate(itemId, item.value.due_at)
     }
     notice.value = 'Curriculum item saved.'
   } catch {
@@ -146,7 +153,7 @@ onMounted(load)
     <v-card border class="mb-6">
       <v-card-text>
         <div class="editor-meta-grid"><v-text-field v-model="item.title" label="Title" /><v-select v-model="item.kind" label="Type" :items="(['lecture', 'assignment'] satisfies CurriculumItemKind[])" /><v-select v-model="item.publication_status" label="Status" :items="(['draft', 'published'] satisfies PublicationStatus[])" /></div>
-        <v-text-field v-if="item.kind === 'assignment'" v-model="item.due_at" type="datetime-local" label="Due date and time" class="mb-2" />
+        <v-text-field v-if="item.kind === 'assignment'" v-model="dueAtLocal" type="datetime-local" label="Due date and time" class="mb-2" />
         <label class="file-button"><span>Import Markdown</span><input type="file" accept=".md,text/markdown,text/plain" @change="importMarkdown"></label>
         <label class="file-button"><span>{{ uploadingAsset ? 'Uploading…' : 'Upload image or PDF' }}</span><input type="file" accept="image/png,image/jpeg,image/gif,image/webp,application/pdf" :disabled="uploadingAsset" @change="uploadAsset"></label>
         <v-textarea v-model="item.body_markdown" label="Markdown and sanitized HTML" rows="18" class="monospace-input" />
