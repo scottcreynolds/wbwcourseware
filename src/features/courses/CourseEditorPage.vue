@@ -52,6 +52,10 @@ const enrollments = ref<CourseEnrollment[]>([])
 const inviteEmail = ref('')
 const localInviteUrl = ref<string | null>(null)
 
+const activeEnrollments = computed(() => enrollments.value.filter((enrollment) => enrollment.status === 'active'))
+const removedEnrollments = computed(() => enrollments.value.filter((enrollment) => enrollment.status === 'removed'))
+const pendingInvitations = computed(() => invitations.value.filter((invitation) => invitation.status === 'pending'))
+
 const assignments = computed(() => workspace.value?.items.filter((item) => item.kind === 'assignment') ?? [])
 
 function itemById(id: string): CourseItem | undefined {
@@ -470,25 +474,41 @@ onMounted(load)
           </v-card-text>
         </v-card>
         <v-list border rounded>
-          <v-list-subheader>Enrolled</v-list-subheader>
+          <v-list-subheader>Active</v-list-subheader>
           <v-list-item
-            v-for="enrollment in enrollments"
+            v-for="enrollment in activeEnrollments"
             :key="enrollment.id"
             :title="enrollment.profiles?.display_name || enrollment.profiles?.email_normalized || 'Student'"
-            :subtitle="enrollment.status"
+            subtitle="active"
           >
-            <template #append><v-btn v-if="enrollment.status === 'active'" color="error" variant="text" @click="removeStudent(enrollment.id)">Remove</v-btn></template>
+            <template #append><v-btn color="error" variant="text" @click="removeStudent(enrollment.id)">Remove</v-btn></template>
           </v-list-item>
-          <v-list-subheader>Invitations</v-list-subheader>
+          <v-list-item v-if="!activeEnrollments.length" title="No active students" />
+          <v-list-subheader>Pending</v-list-subheader>
           <v-list-item
-            v-for="invitation in invitations"
+            v-for="invitation in pendingInvitations"
             :key="invitation.id"
             :title="invitation.email_normalized"
-            :subtitle="`${invitation.status} · expires ${new Date(invitation.expires_at).toLocaleDateString()}`"
+            :subtitle="`pending · expires ${new Date(invitation.expires_at).toLocaleDateString()}`"
           >
-            <template #append><v-btn v-if="invitation.status === 'pending'" variant="text" @click="revoke(invitation.id)">Revoke</v-btn></template>
+            <template #append><v-btn variant="text" @click="revoke(invitation.id)">Revoke</v-btn></template>
           </v-list-item>
+          <v-list-item v-if="!pendingInvitations.length" title="No pending invitations" />
         </v-list>
+        <v-expansion-panels v-if="removedEnrollments.length" class="mt-4">
+          <v-expansion-panel title="Removed">
+            <v-expansion-panel-text>
+              <v-list>
+                <v-list-item
+                  v-for="enrollment in removedEnrollments"
+                  :key="enrollment.id"
+                  :title="enrollment.profiles?.display_name || enrollment.profiles?.email_normalized || 'Student'"
+                  subtitle="removed"
+                />
+              </v-list>
+            </v-expansion-panel-text>
+          </v-expansion-panel>
+        </v-expansion-panels>
       </v-window-item>
       <v-window-item value="announcements">
         <AnnouncementList :course-id="courseId" teacher />
