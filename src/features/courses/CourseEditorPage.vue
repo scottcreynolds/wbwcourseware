@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { pageTitleOverride } from '@/app/pageTitle'
 import { courseService } from '@/features/courses/courseService'
 import { parseCourseOutline } from '@/features/courses/outlineParser'
 import { slugify } from '@/features/courses/slug'
@@ -20,7 +21,7 @@ const loading = ref(true)
 const saving = ref(false)
 const errorMessage = ref<string | null>(null)
 const notice = ref<string | null>(null)
-const activeTab = ref('modules')
+const activeTab = ref('details')
 const moduleDialog = ref(false)
 const moduleTitle = ref('')
 const editModuleDialog = ref(false)
@@ -55,6 +56,26 @@ const localInviteUrl = ref<string | null>(null)
 const activeEnrollments = computed(() => enrollments.value.filter((enrollment) => enrollment.status === 'active'))
 const removedEnrollments = computed(() => enrollments.value.filter((enrollment) => enrollment.status === 'removed'))
 const pendingInvitations = computed(() => invitations.value.filter((invitation) => invitation.status === 'pending'))
+
+const expandedModulesKey = `course-editor:${courseId}:expanded-modules`
+function readExpandedModules(): string[] {
+  try {
+    const stored = localStorage.getItem(expandedModulesKey)
+    if (!stored) return []
+    const parsed: unknown = JSON.parse(stored)
+    return Array.isArray(parsed) ? parsed.filter((value): value is string => typeof value === 'string') : []
+  } catch {
+    return []
+  }
+}
+const expandedModules = ref<string[]>(readExpandedModules())
+watch(expandedModules, (ids) => {
+  try {
+    localStorage.setItem(expandedModulesKey, JSON.stringify(ids))
+  } catch {
+    // ignore write failures, expansion state still applies for this session
+  }
+}, { deep: true })
 
 const assignments = computed(() => workspace.value?.items.filter((item) => item.kind === 'assignment') ?? [])
 
@@ -336,6 +357,16 @@ async function removeStudent(enrollmentId: string): Promise<void> {
   }
 }
 
+watch(
+  () => workspace.value?.course.title,
+  (title) => {
+    pageTitleOverride.value = title?.trim() || null
+  },
+)
+onBeforeUnmount(() => {
+  pageTitleOverride.value = null
+})
+
 onMounted(load)
 </script>
 
@@ -343,37 +374,9 @@ onMounted(load)
   <v-alert v-if="errorMessage" type="error" class="mb-4" role="alert">{{ errorMessage }}</v-alert>
   <v-skeleton-loader v-if="loading" type="article, list-item-three-line@2" />
   <template v-else-if="workspace">
-    <div class="section-heading mb-4">
-      <v-btn to="/teacher" variant="text" prepend-icon="mdi-arrow-left">All courses</v-btn>
-      <v-btn variant="outlined" prepend-icon="mdi-content-copy" @click="duplicateDialog = true">Duplicate course</v-btn>
-    </div>
-    <v-card border class="mb-6">
-      <v-card-title>Course details</v-card-title>
-      <v-card-text>
-        <v-text-field v-model="workspace.course.title" label="Title" />
-        <v-textarea v-model="workspace.course.description" label="Description" rows="3" />
-        <div class="editor-meta-grid">
-          <v-text-field v-model="workspace.course.start_date" type="date" label="Start date" />
-          <v-text-field v-model="workspace.course.end_date" type="date" label="End date" />
-          <v-text-field v-model="workspace.course.timezone" label="IANA timezone" hint="Example: America/New_York" />
-          <v-select v-model="workspace.course.status" label="Status" :items="(['draft', 'active', 'archived'] satisfies CourseStatus[])" />
-        </div>
-        <v-textarea
-          v-model="workspace.course.intro_markdown"
-          label="Intro (Markdown)"
-          rows="8"
-          class="monospace-input mt-2"
-          hint="Shown to students at the top of their course page. Use it for meeting times, location, and a welcome message."
-          persistent-hint
-        />
-      </v-card-text>
-      <v-card-actions><v-btn color="primary" :loading="saving" @click="saveCourse">Save course</v-btn></v-card-actions>
-    </v-card>
-    <v-card v-if="workspace.course.intro_markdown.trim()" border class="mb-6">
-      <v-card-title>Intro preview</v-card-title>
-      <v-card-text><MarkdownContent :source="workspace.course.intro_markdown" /></v-card-text>
-    </v-card>
+    <v-btn to="/teacher" variant="text" icon="mdi-arrow-left" aria-label="All courses" class="mb-4" />
     <v-tabs v-model="activeTab" class="mb-4">
+      <v-tab value="details">Details</v-tab>
       <v-tab value="modules">Modules</v-tab>
       <v-tab value="release">Release &amp; due dates</v-tab>
       <v-tab value="students">Students</v-tab>
@@ -381,14 +384,46 @@ onMounted(load)
       <v-tab value="discussions">Discussions</v-tab>
     </v-tabs>
     <v-window v-model="activeTab">
+      <v-window-item value="details">
+        <v-card border class="mb-6">
+          <v-card-title>Course details</v-card-title>
+          <v-card-text>
+            <v-text-field v-model="workspace.course.title" label="Title" />
+            <v-textarea v-model="workspace.course.description" label="Description" rows="3" />
+            <div class="editor-meta-grid">
+              <v-text-field v-model="workspace.course.start_date" type="date" label="Start date" />
+              <v-text-field v-model="workspace.course.end_date" type="date" label="End date" />
+              <v-text-field v-model="workspace.course.timezone" label="IANA timezone" hint="Example: America/New_York" />
+              <v-select v-model="workspace.course.status" label="Status" :items="(['draft', 'active', 'archived'] satisfies CourseStatus[])" />
+            </div>
+            <v-textarea
+              v-model="workspace.course.intro_markdown"
+              label="Intro (Markdown)"
+              rows="8"
+              class="monospace-input mt-2"
+              hint="Shown to students at the top of their course page. Use it for meeting times, location, and a welcome message."
+              persistent-hint
+            />
+          </v-card-text>
+          <v-card-actions>
+            <v-btn color="primary" :loading="saving" @click="saveCourse">Save course</v-btn>
+            <v-spacer />
+            <v-btn variant="outlined" prepend-icon="mdi-content-copy" @click="duplicateDialog = true">Duplicate course</v-btn>
+          </v-card-actions>
+        </v-card>
+        <v-card v-if="workspace.course.intro_markdown.trim()" border class="mb-6">
+          <v-card-title>Intro preview</v-card-title>
+          <v-card-text><MarkdownContent :source="workspace.course.intro_markdown" /></v-card-text>
+        </v-card>
+      </v-window-item>
       <v-window-item value="modules">
         <div class="section-heading mb-4">
           <h2>Modules</h2>
           <div class="actions compact-actions"><v-btn variant="outlined" @click="outlineDialog = true">Import outline</v-btn><v-btn color="primary" @click="moduleDialog = true">Add module</v-btn></div>
         </div>
         <v-empty-state v-if="workspace.modules.length === 0" headline="No modules yet" text="Add one module or import your whole outline." />
-        <v-expansion-panels v-else multiple>
-          <v-expansion-panel v-for="(module, moduleIndex) in workspace.modules" :key="module.id" :title="module.title">
+        <v-expansion-panels v-else v-model="expandedModules" multiple>
+          <v-expansion-panel v-for="(module, moduleIndex) in workspace.modules" :key="module.id" :value="module.id" :title="module.title">
             <v-expansion-panel-text>
               <div class="row-actions mb-3">
                 <v-btn size="small" :disabled="moduleIndex === 0" @click="moveModule(module, -1)">Move up</v-btn>

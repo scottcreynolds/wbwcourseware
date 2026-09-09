@@ -1,12 +1,14 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import AppHeader from '@/shared/AppHeader.vue'
+import { pageTitleOverride } from '@/app/pageTitle'
 
 const route = useRoute()
 const pageTitle = computed(() =>
-  typeof route.meta.title === 'string' ? route.meta.title : 'Writers Be Writing',
+  pageTitleOverride.value || (typeof route.meta.title === 'string' ? route.meta.title : 'Writers Be Writing'),
 )
+watch(() => route.path, () => { pageTitleOverride.value = null })
 </script>
 
 <template>
