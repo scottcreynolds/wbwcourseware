@@ -3,7 +3,7 @@ import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { pageTitleOverride } from '@/app/pageTitle'
 import { courseService } from '@/features/courses/courseService'
-import { datetimeLocalToIso, isoToDatetimeLocal } from '@/features/courses/datetimeLocal'
+import { datetimeLocalToIso, defaultDueDatetimeLocal, isoToDatetimeLocal } from '@/features/courses/datetimeLocal'
 import MarkdownContent from '@/shared/MarkdownContent.vue'
 import type { CourseItem, CourseItemResource, CurriculumItemKind, PublicationStatus } from '@/types/course'
 
@@ -22,7 +22,7 @@ const resourceTitle = ref('')
 const resourceUrl = ref('')
 const resourceDialog = ref(false)
 const dueAtLocal = computed({
-  get: () => isoToDatetimeLocal(item.value?.due_at ?? null),
+  get: () => item.value?.due_at ? isoToDatetimeLocal(item.value.due_at) : defaultDueDatetimeLocal(),
   set: (value: string) => {
     if (item.value) item.value.due_at = datetimeLocalToIso(value)
   },

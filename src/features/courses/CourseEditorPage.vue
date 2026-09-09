@@ -3,7 +3,7 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { pageTitleOverride } from '@/app/pageTitle'
 import { courseService } from '@/features/courses/courseService'
-import { datetimeLocalToIso, isoToDatetimeLocal } from '@/features/courses/datetimeLocal'
+import { datetimeLocalToIso, defaultDueDatetimeLocal, isoToDatetimeLocal } from '@/features/courses/datetimeLocal'
 import { formatCourseDate } from '@/features/learning/dateFormat'
 import { parseCourseOutline } from '@/features/courses/outlineParser'
 import { slugify } from '@/features/courses/slug'
@@ -486,7 +486,7 @@ onMounted(load)
         <h2 class="mb-3">Assignment due dates</h2>
         <v-card v-for="item in assignments" :key="item.id" border class="mb-3">
           <v-card-title>{{ item.title }}</v-card-title>
-          <v-card-text><v-text-field :model-value="isoToDatetimeLocal(item.due_at)" type="datetime-local" label="Due date and time" @update:model-value="(value: string) => setDueAtLocal(item, value)" /></v-card-text>
+          <v-card-text><v-text-field :model-value="item.due_at ? isoToDatetimeLocal(item.due_at) : defaultDueDatetimeLocal()" type="datetime-local" label="Due date and time" @update:model-value="(value: string) => setDueAtLocal(item, value)" /></v-card-text>
           <v-card-actions><v-btn color="primary" @click="saveDueDate(item)">Save due date</v-btn></v-card-actions>
         </v-card>
         <h2 class="mt-6 mb-3">Submission review</h2>
