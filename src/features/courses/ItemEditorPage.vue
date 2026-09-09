@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { pageTitleOverride } from '@/app/pageTitle'
 import { courseService } from '@/features/courses/courseService'
 import MarkdownContent from '@/shared/MarkdownContent.vue'
 import type { CourseItem, CourseItemResource, CurriculumItemKind, PublicationStatus } from '@/types/course'
@@ -103,11 +104,16 @@ async function moveResource(resourceId: string, direction: -1 | 1): Promise<void
   try { await courseService.reorderResources(itemId, ordered.map((resource) => resource.id)); await load() } catch { errorMessage.value = 'Resources could not be reordered.' }
 }
 
+pageTitleOverride.value = ''
+onBeforeUnmount(() => {
+  pageTitleOverride.value = null
+})
+
 onMounted(load)
 </script>
 
 <template>
-  <v-btn :to="`/teacher/courses/${courseId}`" variant="text" prepend-icon="mdi-arrow-left" class="mb-4">Back to course</v-btn>
+  <v-btn :to="`/teacher/courses/${courseId}?tab=modules`" variant="text" prepend-icon="mdi-arrow-left" class="mb-4">Back to course</v-btn>
   <v-alert v-if="errorMessage" type="error" class="mb-4" role="alert">{{ errorMessage }}</v-alert>
   <v-skeleton-loader v-if="loading" type="article" />
   <template v-else-if="item">

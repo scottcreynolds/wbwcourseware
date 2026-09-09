@@ -6,7 +6,9 @@ import { pageTitleOverride } from '@/app/pageTitle'
 
 const route = useRoute()
 const pageTitle = computed(() =>
-  pageTitleOverride.value || (typeof route.meta.title === 'string' ? route.meta.title : 'Writers Be Writing'),
+  pageTitleOverride.value !== null
+    ? pageTitleOverride.value
+    : (typeof route.meta.title === 'string' ? route.meta.title : 'Writers Be Writing'),
 )
 watch(() => route.path, () => { pageTitleOverride.value = null })
 </script>
@@ -16,7 +18,7 @@ watch(() => route.path, () => { pageTitleOverride.value = null })
     <AppHeader />
     <v-main id="main-content" tabindex="-1">
       <v-container class="page-container" fluid>
-        <h1 class="page-title">{{ pageTitle }}</h1>
+        <h1 v-if="pageTitle" class="page-title">{{ pageTitle }}</h1>
         <RouterView />
       </v-container>
     </v-main>
