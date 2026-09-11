@@ -106,6 +106,8 @@ html {
 .editor-meta-grid { align-items: start; }
 .editor-meta-grid > * { flex: 1 1 12rem; }
 .outline-item-row { display: grid; grid-template-columns: 10rem 1fr; gap: 0.75rem; }
+.drag-handle { cursor: grab; }
+.drag-handle:active { cursor: grabbing; }
 .topic-summary { display: flex; flex-direction: column; gap: 0.15rem; text-align: left; }
 .topic-summary-title { font-weight: 600; }
 .topic-summary-meta { font-size: 0.85rem; }

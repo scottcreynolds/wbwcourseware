@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch, type ComponentPublicInstance } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useDraggable, type DraggableEvent } from 'vue-draggable-plus'
 import { pageTitleOverride } from '@/app/pageTitle'
 import { courseService } from '@/features/courses/courseService'
 import { datetimeLocalToIso, defaultDueDatetimeLocal, isoToDatetimeLocal } from '@/features/courses/datetimeLocal'
@@ -200,6 +201,52 @@ async function moveModule(module: CourseModule, direction: -1 | 1): Promise<void
   if (target < 0 || target >= ordered.length) return
   ;[ordered[index], ordered[target]] = [ordered[target]!, ordered[index]!]
   await run(() => courseService.reorderModules(courseId, ordered.map((entry) => entry.id)), 'Modules reordered.')
+}
+
+let modulesDraggableReady = false
+function registerModulesList(el: Element | ComponentPublicInstance | null): void {
+  if (modulesDraggableReady) return
+  const domEl = el instanceof HTMLElement ? el : (el as ComponentPublicInstance | null)?.$el
+  if (!(domEl instanceof HTMLElement)) return
+  modulesDraggableReady = true
+  useDraggable(domEl, {
+    handle: '.drag-handle',
+    animation: 150,
+    immediate: false,
+    onEnd: (event: DraggableEvent) => onModulesDragEnd(event.oldIndex, event.newIndex),
+  }).start()
+}
+
+async function onModulesDragEnd(oldIndex: number | undefined, newIndex: number | undefined): Promise<void> {
+  if (!workspace.value || oldIndex === undefined || newIndex === undefined || oldIndex === newIndex) return
+  const ordered = [...workspace.value.modules].sort((a, b) => a.position - b.position)
+  const [moved] = ordered.splice(oldIndex, 1)
+  if (!moved) return
+  ordered.splice(newIndex, 0, moved)
+  await run(() => courseService.reorderModules(courseId, ordered.map((entry) => entry.id)), 'Modules reordered.')
+}
+
+const draggableItemModules = new Set<string>()
+function registerItemsList(moduleId: string, el: Element | ComponentPublicInstance | null): void {
+  if (draggableItemModules.has(moduleId)) return
+  const domEl = el instanceof HTMLElement ? el : (el as ComponentPublicInstance | null)?.$el
+  if (!(domEl instanceof HTMLElement)) return
+  draggableItemModules.add(moduleId)
+  useDraggable(domEl, {
+    handle: '.drag-handle',
+    animation: 150,
+    immediate: false,
+    onEnd: (event: DraggableEvent) => onItemsDragEnd(moduleId, event.oldIndex, event.newIndex),
+  }).start()
+}
+
+async function onItemsDragEnd(moduleId: string, oldIndex: number | undefined, newIndex: number | undefined): Promise<void> {
+  if (oldIndex === undefined || newIndex === undefined || oldIndex === newIndex) return
+  const ordered = itemsFor(moduleId)
+  const [moved] = ordered.splice(oldIndex, 1)
+  if (!moved) return
+  ordered.splice(newIndex, 0, moved)
+  await run(() => courseService.reorderModuleItems(moduleId, ordered.map((item) => item.id)), 'Items reordered.')
 }
 
 function isModuleReleased(module: CourseModule): boolean {
@@ -422,9 +469,10 @@ onMounted(load)
           <div class="actions compact-actions"><v-btn variant="outlined" @click="outlineDialog = true">Import outline</v-btn><v-btn color="primary" @click="moduleDialog = true">Add module</v-btn></div>
         </div>
         <v-empty-state v-if="workspace.modules.length === 0" headline="No modules yet" text="Add one module or import your whole outline." />
-        <v-expansion-panels v-else v-model="expandedModules" multiple>
+        <v-expansion-panels v-else :ref="(el: Element | ComponentPublicInstance | null) => registerModulesList(el)" v-model="expandedModules" multiple>
           <v-expansion-panel v-for="(module, moduleIndex) in workspace.modules" :key="module.id" :value="module.id">
             <v-expansion-panel-title>
+              <v-icon icon="mdi-drag" class="drag-handle mr-1" aria-hidden="true" @click.stop />
               {{ module.title }}
               <v-chip size="x-small" class="ml-2" :color="isModuleReleased(module) ? 'success' : 'neutral'" variant="flat">{{ isModuleReleased(module) ? 'Released' : 'Locked' }}</v-chip>
             </v-expansion-panel-title>
@@ -445,9 +493,9 @@ onMounted(load)
                   <template #activator="{ props: tooltipProps }"><v-btn v-bind="tooltipProps" size="small" color="error" variant="text" :disabled="moduleOnlyItems(module.id).length > 0" @click="deleteModule(module)">Delete module</v-btn></template>
                 </v-tooltip>
               </div>
-              <v-list v-if="itemsFor(module.id).length">
+              <v-list v-if="itemsFor(module.id).length" :ref="(el: Element | ComponentPublicInstance | null) => registerItemsList(module.id, el)">
                 <v-list-item v-for="(item, itemIndex) in itemsFor(module.id)" :key="item.id" :title="item.title">
-                  <template #prepend><v-chip size="small" :color="item.kind === 'assignment' ? 'secondary' : undefined">{{ item.kind }}</v-chip></template>
+                  <template #prepend><v-icon icon="mdi-drag" class="drag-handle mr-2" aria-hidden="true" /><v-chip size="small" :color="item.kind === 'assignment' ? 'secondary' : undefined">{{ item.kind }}</v-chip></template>
                   <v-list-item-subtitle>
                     <v-chip size="x-small" :color="item.publication_status === 'published' ? 'success' : 'neutral'" variant="flat">{{ item.publication_status }}</v-chip>
                     <v-chip v-if="item.kind === 'assignment' && item.due_at" size="x-small" variant="tonal" class="ml-1">Due {{ formatCourseDate(item.due_at, workspace.course.timezone) }}</v-chip>
