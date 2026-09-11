@@ -624,7 +624,7 @@ onMounted(load)
   <v-dialog v-model="itemDialog" max-width="32rem"><v-card title="Add curriculum item"><v-card-text><v-select v-model="itemKind" label="Type" :items="['lecture', 'assignment']" /><v-text-field v-model="itemTitle" label="Title" /></v-card-text><v-card-actions><v-spacer /><v-btn @click="itemDialog = false">Cancel</v-btn><v-btn color="primary" :disabled="!itemTitle.trim()" @click="addItem">Create and edit</v-btn></v-card-actions></v-card></v-dialog>
   <v-dialog v-model="linkDialog" max-width="36rem"><v-card title="Link existing item"><v-card-text><v-select v-model="linkItemId" label="Curriculum item" :items="linkableItems(linkModuleId)" item-title="title" item-value="id" /></v-card-text><v-card-actions><v-spacer /><v-btn @click="linkDialog = false">Cancel</v-btn><v-btn color="primary" :disabled="!linkItemId" @click="linkItem">Link</v-btn></v-card-actions></v-card></v-dialog>
   <v-dialog v-model="moveDialog" max-width="36rem"><v-card title="Move to module"><v-card-text><v-select v-model="moveTargetModuleId" label="Target module" :items="moveTargetOptions(moveItemId)" item-title="title" item-value="id" /></v-card-text><v-card-actions><v-spacer /><v-btn @click="moveDialog = false">Cancel</v-btn><v-btn color="primary" :disabled="!moveTargetModuleId" :loading="saving" @click="moveItemToModule">Move</v-btn></v-card-actions></v-card></v-dialog>
-  <v-dialog v-model="previewDialog" max-width="48rem" height="90vh" scrollable>
+  <v-dialog v-model="previewDialog" max-width="64rem" height="90vh" scrollable>
     <v-card v-if="previewItem" :title="previewItem.title">
       <v-card-text>
         <MarkdownContent :source="previewItem.body_markdown" />

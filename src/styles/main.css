@@ -130,7 +130,7 @@ html {
 .course-header h2,.document-title { font-size: clamp(1.8rem,4vw,3rem); }
 .locked-module { background: #f1eee9; }
 .v-theme--writersBeWritingDark .locked-module { background: #262626; }
-.print-document { max-width: 50rem; margin-inline: auto; background: #fff; color: #1a1a1a; padding: clamp(1.25rem,4vw,3rem); }
+.print-document { max-width: min(100%, 64rem); margin-inline: auto; background: #fff; color: #1a1a1a; padding: clamp(1.25rem,4vw,3rem); }
 .v-theme--writersBeWritingDark .print-document { background: #1e1e1e; color: #f2f0ed; }
 .print-header { border-bottom: 2px solid #4f355f; margin-bottom: 2rem; padding-bottom: .75rem; }
 .v-theme--writersBeWritingDark .print-header { border-bottom-color: #9b7cb0; }
