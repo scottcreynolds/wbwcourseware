@@ -24,6 +24,7 @@ async function refresh(): Promise<void> {
   try { topics.value = await discussionService.list(props.courseId) }
   catch { message.value = 'Discussions could not be loaded.' }
 }
+defineExpose({ refresh })
 async function load(): Promise<void> {
   loading.value = true
   await refresh()

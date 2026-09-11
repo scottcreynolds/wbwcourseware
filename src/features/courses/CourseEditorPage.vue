@@ -27,6 +27,8 @@ const notice = ref<string | null>(null)
 const validTabs = ['details', 'modules', 'release', 'students', 'announcements', 'discussions'] as const
 const requestedTab = String(route.query.tab ?? '')
 const activeTab = ref(validTabs.includes(requestedTab as (typeof validTabs)[number]) ? requestedTab : 'details')
+const announcementListRef = ref<InstanceType<typeof AnnouncementList> | null>(null)
+const discussionBoardRef = ref<InstanceType<typeof DiscussionBoard> | null>(null)
 const moduleDialog = ref(false)
 const moduleTitle = ref('')
 const editModuleDialog = ref(false)
@@ -115,21 +117,40 @@ function moveTargetOptions(itemId: string): CourseModule[] {
   return workspace.value?.modules.filter((module) => !present.has(module.id)) ?? []
 }
 
+async function fetchCourseState(): Promise<void> {
+  const [ws, inv, enr] = await Promise.all([
+    courseService.loadWorkspace(courseId),
+    enrollmentService.listInvitations(courseId),
+    enrollmentService.listEnrollments(courseId),
+  ])
+  workspace.value = ws
+  invitations.value = inv
+  enrollments.value = enr
+}
+
 async function refresh(): Promise<void> {
   errorMessage.value = null
   try {
-    const [ws, inv, enr] = await Promise.all([
-      courseService.loadWorkspace(courseId),
-      enrollmentService.listInvitations(courseId),
-      enrollmentService.listEnrollments(courseId),
-    ])
-    workspace.value = ws
-    invitations.value = inv
-    enrollments.value = enr
+    await fetchCourseState()
   } catch {
     errorMessage.value = 'Course could not be loaded or you do not have access.'
   }
 }
+
+async function refreshQuietly(): Promise<void> {
+  try {
+    await fetchCourseState()
+  } catch {
+    // Background tab-switch refresh: keep the last-good cached data visible and stay silent on failure.
+  }
+}
+
+const tabsWithSharedRefresh = new Set(['details', 'modules', 'release', 'students'])
+watch(activeTab, (tab) => {
+  if (tabsWithSharedRefresh.has(tab)) void refreshQuietly()
+  else if (tab === 'announcements') void announcementListRef.value?.refresh()
+  else if (tab === 'discussions') void discussionBoardRef.value?.refresh()
+})
 
 async function load(): Promise<void> {
   loading.value = true
@@ -591,10 +612,10 @@ onMounted(load)
         </v-expansion-panels>
       </v-window-item>
       <v-window-item value="announcements">
-        <AnnouncementList :course-id="courseId" teacher />
+        <AnnouncementList ref="announcementListRef" :course-id="courseId" teacher />
       </v-window-item>
       <v-window-item value="discussions">
-        <DiscussionBoard :course-id="courseId" teacher />
+        <DiscussionBoard ref="discussionBoardRef" :course-id="courseId" teacher />
       </v-window-item>
     </v-window>
   </template>

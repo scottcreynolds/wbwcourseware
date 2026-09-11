@@ -28,6 +28,8 @@ async function refresh(): Promise<void> {
   catch { message.value = 'Announcements could not be loaded.' }
 }
 
+defineExpose({ refresh })
+
 async function load(): Promise<void> {
   loading.value = true
   await refresh()

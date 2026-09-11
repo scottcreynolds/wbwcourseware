@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import {computed,onMounted,ref} from 'vue'
+import {computed,onMounted,ref,watch} from 'vue'
 import {useRoute} from 'vue-router'
 import {learningService} from '@/features/learning/learningService'
 import {formatCourseDate} from '@/features/learning/dateFormat'
@@ -9,7 +9,18 @@ import DiscussionBoard from '@/features/discussions/DiscussionBoard.vue'
 import MarkdownContent from '@/shared/MarkdownContent.vue'
 const id=String(useRoute().params.courseId),outline=ref<LearningOutline|null>(null),loading=ref(true),errorMessage=ref<string|null>(null)
 const activeTab=ref('my-work')
+const announcementListRef=ref<InstanceType<typeof AnnouncementList>|null>(null)
+const discussionBoardRef=ref<InstanceType<typeof DiscussionBoard>|null>(null)
 const availableCount=computed(()=>outline.value?.modules.filter(module=>module.isVisible).length??0)
+async function refreshQuietly():Promise<void>{
+  try{outline.value=await learningService.outline(id)}
+  catch{/* background tab-switch refresh: keep the last-good cached outline visible and stay silent on failure */}
+}
+watch(activeTab,(tab)=>{
+  if(tab==='my-work') void refreshQuietly()
+  else if(tab==='announcements') void announcementListRef.value?.refresh()
+  else if(tab==='discussions') void discussionBoardRef.value?.refresh()
+})
 onMounted(async()=>{try{outline.value=await learningService.outline(id)}catch{errorMessage.value='This course is unavailable or you no longer have access.'}finally{loading.value=false}})
 </script>
 <template>
@@ -33,10 +44,10 @@ onMounted(async()=>{try{outline.value=await learningService.outline(id)}catch{er
         </v-card>
       </v-window-item>
       <v-window-item value="announcements">
-        <AnnouncementList :course-id="id" />
+        <AnnouncementList ref="announcementListRef" :course-id="id" />
       </v-window-item>
       <v-window-item value="discussions">
-        <DiscussionBoard :course-id="id" />
+        <DiscussionBoard ref="discussionBoardRef" :course-id="id" />
       </v-window-item>
     </v-window>
   </template>
