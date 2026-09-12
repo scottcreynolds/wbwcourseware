@@ -402,17 +402,29 @@ async function duplicateCourse(): Promise<void> {
   if (newId) await router.push(`/teacher/courses/${newId}`)
 }
 
-async function invite(): Promise<void> {
-  if (!inviteEmail.value) return
+async function sendInvite(email: string): Promise<void> {
   try {
-    const result = await enrollmentService.invite(courseId, inviteEmail.value)
+    const result = await enrollmentService.invite(courseId, email)
     localInviteUrl.value = result.developmentInviteUrl ?? null
-    inviteEmail.value = ''
     notice.value = result.emailStatus === 'sent' ? 'Invitation sent.' : 'Invitation created.'
     await refresh()
   } catch {
     errorMessage.value = 'Invitation could not be created.'
   }
+}
+
+async function invite(): Promise<void> {
+  if (!inviteEmail.value) return
+  const email = inviteEmail.value
+  inviteEmail.value = ''
+  await sendInvite(email)
+}
+
+const resendingInvitationId = ref<string | null>(null)
+async function resend(invitation: CourseInvitation): Promise<void> {
+  resendingInvitationId.value = invitation.id
+  await sendInvite(invitation.email_normalized)
+  resendingInvitationId.value = null
 }
 
 async function revoke(invitationId: string): Promise<void> {
@@ -592,7 +604,12 @@ onMounted(load)
             :title="invitation.email_normalized"
             :subtitle="`pending · expires ${new Date(invitation.expires_at).toLocaleDateString()}`"
           >
-            <template #append><v-btn variant="text" @click="revoke(invitation.id)">Revoke</v-btn></template>
+            <template #append>
+              <div class="row-actions">
+                <v-btn variant="text" :loading="resendingInvitationId === invitation.id" @click="resend(invitation)">Resend</v-btn>
+                <v-btn variant="text" @click="revoke(invitation.id)">Revoke</v-btn>
+              </div>
+            </template>
           </v-list-item>
           <v-list-item v-if="!pendingInvitations.length" title="No pending invitations" />
         </v-list>
