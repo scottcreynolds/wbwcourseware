@@ -216,6 +216,19 @@ export const courseService = {
     })
     if (error) throw error
   },
+  async getModuleNotes(moduleId: string): Promise<string> {
+    const { data, error } = await supabase
+      .from('course_module_notes')
+      .select('notes_markdown')
+      .eq('module_id', moduleId)
+      .maybeSingle()
+    if (error) throw error
+    return data?.notes_markdown ?? ''
+  },
+  async updateModuleNotes(moduleId: string, notes: string): Promise<void> {
+    const { error } = await supabase.from('course_module_notes').upsert({ module_id: moduleId, notes_markdown: notes })
+    if (error) throw error
+  },
   async uploadCurriculumAsset(file: File): Promise<{ publicUrl: string }> {
     const { data, error: invokeError } = await supabase.functions.invoke<{ path: string; token: string }>(
       'curriculum-asset-upload-intent',

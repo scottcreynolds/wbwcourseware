@@ -46,7 +46,12 @@ const moveSourceModuleId = ref('')
 const moveItemId = ref('')
 const moveTargetModuleId = ref<string | null>(null)
 const previewDialog = ref(false)
-const previewItem = ref<CourseItem | null>(null)
+const previewContent = ref<{ title: string; markdown: string } | null>(null)
+const notesEditDialog = ref(false)
+const notesEditModuleId = ref('')
+const notesEditModuleTitle = ref('')
+const notesEditMarkdown = ref('')
+const notesEditLoading = ref(false)
 const outlineDialog = ref(false)
 const outlineSource = ref(`# Module: Foundations
 ## Lecture: What a Scene Does
@@ -359,8 +364,45 @@ async function publishAllInModule(module: CourseModule): Promise<void> {
 }
 
 function openPreview(item: CourseItem): void {
-  previewItem.value = item
+  previewContent.value = { title: item.title, markdown: item.body_markdown }
   previewDialog.value = true
+}
+
+async function openNotesPreview(module: CourseModule): Promise<void> {
+  previewContent.value = { title: `Teaching notes — ${module.title}`, markdown: '' }
+  previewDialog.value = true
+  try {
+    const notes = await courseService.getModuleNotes(module.id)
+    previewContent.value = { title: `Teaching notes — ${module.title}`, markdown: notes }
+  } catch {
+    errorMessage.value = 'Teaching notes could not be loaded.'
+    previewDialog.value = false
+  }
+}
+
+function openNotesEditor(module: CourseModule): void {
+  notesEditModuleId.value = module.id
+  notesEditModuleTitle.value = module.title
+  notesEditMarkdown.value = ''
+  notesEditDialog.value = true
+  notesEditLoading.value = true
+  courseService
+    .getModuleNotes(module.id)
+    .then((notes) => {
+      notesEditMarkdown.value = notes
+    })
+    .catch(() => {
+      errorMessage.value = 'Teaching notes could not be loaded.'
+      notesEditDialog.value = false
+    })
+    .finally(() => {
+      notesEditLoading.value = false
+    })
+}
+
+async function saveNotes(): Promise<void> {
+  await run(() => courseService.updateModuleNotes(notesEditModuleId.value, notesEditMarkdown.value), 'Teaching notes saved.')
+  notesEditDialog.value = false
 }
 
 async function moveItem(moduleId: string, itemId: string, direction: -1 | 1): Promise<void> {
@@ -514,6 +556,10 @@ onMounted(load)
                 <v-btn size="small" :disabled="moduleIndex === 0" @click="moveModule(module, -1)">Move up</v-btn>
                 <v-btn size="small" :disabled="moduleIndex === workspace.modules.length - 1" @click="moveModule(module, 1)">Move down</v-btn>
                 <v-btn size="small" @click="openEditModule(module)">Rename</v-btn>
+                <v-tooltip text="Preview teaching notes">
+                  <template #activator="{ props: tooltipProps }"><v-btn v-bind="tooltipProps" icon="mdi-eye-outline" size="small" variant="text" aria-label="Preview teaching notes" @click="openNotesPreview(module)" /></template>
+                </v-tooltip>
+                <v-btn size="small" @click="openNotesEditor(module)">Teaching notes</v-btn>
                 <v-btn size="small" @click="openItemDialog(module.id)">Add item</v-btn>
                 <v-btn size="small" :disabled="linkableItems(module.id).length === 0" @click="openLinkDialog(module.id)">Link existing</v-btn>
                 <v-tooltip :text="itemsFor(module.id).some(item => item.publication_status === 'draft') ? 'Publish every draft item in this module' : 'All items already published'">
@@ -642,13 +688,26 @@ onMounted(load)
   <v-dialog v-model="linkDialog" max-width="36rem"><v-card title="Link existing item"><v-card-text><v-select v-model="linkItemId" label="Curriculum item" :items="linkableItems(linkModuleId)" item-title="title" item-value="id" /></v-card-text><v-card-actions><v-spacer /><v-btn @click="linkDialog = false">Cancel</v-btn><v-btn color="primary" :disabled="!linkItemId" @click="linkItem">Link</v-btn></v-card-actions></v-card></v-dialog>
   <v-dialog v-model="moveDialog" max-width="36rem"><v-card title="Move to module"><v-card-text><v-select v-model="moveTargetModuleId" label="Target module" :items="moveTargetOptions(moveItemId)" item-title="title" item-value="id" /></v-card-text><v-card-actions><v-spacer /><v-btn @click="moveDialog = false">Cancel</v-btn><v-btn color="primary" :disabled="!moveTargetModuleId" :loading="saving" @click="moveItemToModule">Move</v-btn></v-card-actions></v-card></v-dialog>
   <v-dialog v-model="previewDialog" max-width="64rem" height="90vh" scrollable>
-    <v-card v-if="previewItem" :title="previewItem.title">
+    <v-card v-if="previewContent" :title="previewContent.title">
       <v-card-text>
-        <MarkdownContent :source="previewItem.body_markdown" />
+        <MarkdownContent :source="previewContent.markdown" />
       </v-card-text>
       <v-card-actions>
         <v-spacer />
         <v-btn @click="previewDialog = false">Close</v-btn>
+      </v-card-actions>
+    </v-card>
+  </v-dialog>
+  <v-dialog v-model="notesEditDialog" max-width="48rem">
+    <v-card :title="`Edit teaching notes — ${notesEditModuleTitle}`">
+      <v-card-text>
+        <v-skeleton-loader v-if="notesEditLoading" type="paragraph" />
+        <v-textarea v-else v-model="notesEditMarkdown" label="Markdown (instructor-only, never shown to students)" rows="14" class="monospace-input" />
+      </v-card-text>
+      <v-card-actions>
+        <v-spacer />
+        <v-btn @click="notesEditDialog = false">Cancel</v-btn>
+        <v-btn color="primary" :loading="saving" :disabled="notesEditLoading" @click="saveNotes">Save</v-btn>
       </v-card-actions>
     </v-card>
   </v-dialog>

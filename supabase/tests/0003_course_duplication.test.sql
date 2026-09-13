@@ -1,5 +1,5 @@
 begin;
-select plan(6);
+select plan(7);
 
 select has_function('public','duplicate_course',array['uuid','text'],'duplicate_course exists');
 select function_privs_are('public','duplicate_course',array['uuid','text'],'authenticated',array['EXECUTE'],'duplicate_course is callable by any authenticated caller (ownership enforced inside)');
@@ -25,6 +25,8 @@ insert into public.course_module_items(module_id, item_id, position) values
   ('44444444-4444-4444-4444-444444444444','44444444-4444-4444-4444-444444444445',0);
 insert into public.course_item_resources(item_id, title, url, position)
 values ('44444444-4444-4444-4444-444444444445','A resource','https://example.com',0);
+insert into public.course_module_notes(module_id, notes_markdown)
+values ('44444444-4444-4444-4444-444444444443','Remind them about the workshop rubric.');
 
 set local role authenticated;
 set local request.jwt.claims = '{"sub":"44444444-4444-4444-4444-444444444441","role":"authenticated"}';
@@ -50,6 +52,13 @@ select is(
   (select release_mode::text from public.course_modules where course_id = :'new_course_id' and title = 'Module One'),
   'manual',
   'release state resets on duplication -- a new section should not inherit "already released"'
+);
+select is(
+  (select n.notes_markdown from public.course_module_notes n
+   join public.course_modules m on m.id = n.module_id
+   where m.course_id = :'new_course_id' and m.title = 'Module One'),
+  'Remind them about the workshop rubric.',
+  'teaching notes carry over on duplication -- they are content, not term-specific state'
 );
 
 select * from finish();rollback;
