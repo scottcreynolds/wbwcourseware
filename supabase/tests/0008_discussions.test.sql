@@ -1,5 +1,5 @@
 begin;
-select plan(15);
+select plan(18);
 select has_table('public', 'discussion_topics', 'topics table exists');
 select has_table('public', 'discussion_replies', 'replies table exists');
 select has_column('public', 'discussion_topics', 'deleted_at', 'topics soft-delete');
@@ -75,6 +75,39 @@ select is(
   (jsonb_array_length(public.get_course_discussions('77777777-7777-7777-7777-777777777773'))),
   1,
   'activating the course makes its discussion topic visible immediately'
+);
+reset role;
+
+-- Deleted topics must vanish entirely for students (not appear as a
+-- masked placeholder) while remaining visible, with real content, to the
+-- owning teacher -- who segregates them client-side into their own
+-- section rather than the database hiding them.
+update public.discussion_topics set deleted_at = now() where id = '77777777-7777-7777-7777-777777777775';
+
+set local role authenticated;
+set local request.jwt.claims = '{"sub":"77777777-7777-7777-7777-777777777772","role":"authenticated"}';
+select is(
+  (public.get_course_discussions('77777777-7777-7777-7777-777777777773')),
+  '[]'::jsonb,
+  'a deleted topic is completely invisible to a student, not a masked placeholder'
+);
+reset role;
+
+set local role authenticated;
+set local request.jwt.claims = '{"sub":"11111111-1111-1111-1111-111111111111","role":"authenticated"}';
+select is(
+  (select t.value ->> 'title' from jsonb_array_elements(
+    public.get_course_discussions('77777777-7777-7777-7777-777777777773')
+  ) t),
+  'Topic',
+  'the owning teacher still receives a deleted topic, with its real title, for the segregated view'
+);
+select is(
+  (select t.value ->> 'deletedAt' is not null from jsonb_array_elements(
+    public.get_course_discussions('77777777-7777-7777-7777-777777777773')
+  ) t),
+  true,
+  'the deleted topic carries a deletedAt timestamp so the client can segregate it'
 );
 reset role;
 

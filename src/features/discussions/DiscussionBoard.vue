@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useAuthStore } from '@/features/auth/authStore'
 import { discussionService } from '@/features/discussions/discussionService'
 import MarkdownContent from '@/shared/MarkdownContent.vue'
@@ -20,6 +20,8 @@ const newTopicDialog = ref(false)
 let refreshTimer: ReturnType<typeof setInterval> | undefined
 
 function canManage(entry: DiscussionReply): boolean { return Boolean(props.teacher || entry.authorId === auth.profile?.id) }
+const activeTopics = computed(() => topics.value.filter((topic) => !topic.deletedAt))
+const deletedTopics = computed(() => topics.value.filter((topic) => topic.deletedAt))
 async function refresh(): Promise<void> {
   try { topics.value = await discussionService.list(props.courseId) }
   catch { message.value = 'Discussions could not be loaded.' }
@@ -98,30 +100,45 @@ onUnmounted(() => { if (refreshTimer) clearInterval(refreshTimer) })
     </div>
     <v-alert v-if="message" type="info" class="mb-3">{{ message }}</v-alert>
     <v-skeleton-loader v-if="loading" type="article@2" />
-    <v-empty-state v-else-if="!topics.length" headline="No discussion topics" />
+    <v-empty-state v-else-if="!activeTopics.length" headline="No discussion topics" />
     <v-expansion-panels v-else variant="accordion">
-      <v-expansion-panel v-for="topic in topics" :key="topic.id">
+      <v-expansion-panel v-for="topic in activeTopics" :key="topic.id">
         <v-expansion-panel-title>
           <div class="topic-summary">
-            <span class="topic-summary-title">{{ topic.deletedAt ? 'Topic deleted' : topic.title }}</span>
+            <span class="topic-summary-title">{{ topic.title }}</span>
             <span class="topic-summary-meta text-medium-emphasis">
               {{ topic.authorName }} · {{ new Date(topic.createdAt).toLocaleString() }}
-              <template v-if="!topic.deletedAt"> · {{ topic.replies.filter(r => !r.deletedAt).length }} {{ topic.replies.filter(r => !r.deletedAt).length === 1 ? 'reply' : 'replies' }}</template>
+              · {{ topic.replies.filter(r => !r.deletedAt).length }} {{ topic.replies.filter(r => !r.deletedAt).length === 1 ? 'reply' : 'replies' }}
             </span>
           </div>
         </v-expansion-panel-title>
         <v-expansion-panel-text>
-          <template v-if="!topic.deletedAt">
-            <MarkdownContent :source="topic.bodyMarkdown" />
-            <div v-if="canManage(topic)" class="row-actions mt-2 mb-2"><v-btn size="small" variant="text" @click="editTopic(topic)">Edit</v-btn><v-btn size="small" color="error" variant="text" @click="remove('topic', topic.id)">Delete</v-btn></div>
-            <v-divider class="my-3" />
-            <v-list><template v-for="replyItem in topic.replies" :key="replyItem.id"><v-list-item v-if="!replyItem.deletedAt"><v-list-item-title>{{ replyItem.authorName }}</v-list-item-title><MarkdownContent :source="replyItem.bodyMarkdown" /><template v-if="canManage(replyItem)" #append><v-btn icon="mdi-pencil" aria-label="Edit reply" variant="text" @click="editReply(replyItem)" /><v-btn icon="mdi-delete" aria-label="Delete reply" color="error" variant="text" @click="remove('reply', replyItem.id)" /></template></v-list-item></template></v-list>
-            <v-textarea v-model="replyDrafts[topic.id]" label="Reply" rows="2" class="mt-3" />
-            <v-btn color="primary" @click="reply(topic.id)">Post reply</v-btn>
-          </template>
+          <MarkdownContent :source="topic.bodyMarkdown" />
+          <div v-if="canManage(topic)" class="row-actions mt-2 mb-2"><v-btn size="small" variant="text" @click="editTopic(topic)">Edit</v-btn><v-btn size="small" color="error" variant="text" @click="remove('topic', topic.id)">Delete</v-btn></div>
+          <v-divider class="my-3" />
+          <v-list><template v-for="replyItem in topic.replies" :key="replyItem.id"><v-list-item v-if="!replyItem.deletedAt"><v-list-item-title>{{ replyItem.authorName }}</v-list-item-title><MarkdownContent :source="replyItem.bodyMarkdown" /><template v-if="canManage(replyItem)" #append><v-btn icon="mdi-pencil" aria-label="Edit reply" variant="text" @click="editReply(replyItem)" /><v-btn icon="mdi-delete" aria-label="Delete reply" color="error" variant="text" @click="remove('reply', replyItem.id)" /></template></v-list-item></template></v-list>
+          <v-textarea v-model="replyDrafts[topic.id]" label="Reply" rows="2" class="mt-3" />
+          <v-btn color="primary" @click="reply(topic.id)">Post reply</v-btn>
         </v-expansion-panel-text>
       </v-expansion-panel>
     </v-expansion-panels>
+    <template v-if="teacher && deletedTopics.length">
+      <v-divider class="my-6" />
+      <h3 class="mb-3">Deleted discussions</h3>
+      <v-expansion-panels variant="accordion">
+        <v-expansion-panel v-for="topic in deletedTopics" :key="topic.id">
+          <v-expansion-panel-title>
+            <div class="topic-summary">
+              <span class="topic-summary-title">{{ topic.title }}</span>
+              <span class="topic-summary-meta text-medium-emphasis">{{ topic.authorName }} · {{ new Date(topic.createdAt).toLocaleString() }} · deleted</span>
+            </div>
+          </v-expansion-panel-title>
+          <v-expansion-panel-text>
+            <MarkdownContent :source="topic.bodyMarkdown" />
+          </v-expansion-panel-text>
+        </v-expansion-panel>
+      </v-expansion-panels>
+    </template>
     <v-dialog v-model="newTopicDialog" max-width="36rem">
       <v-card title="Start a discussion">
         <v-card-text>
