@@ -50,18 +50,8 @@ onMounted(load)
 
 <template>
   <section class="submission-panel" aria-labelledby="submissions-heading">
-    <h3 id="submissions-heading">Workshop submissions</h3>
+    <h3 id="submissions-heading">Submitted assignments</h3>
     <v-alert v-if="message" type="info" class="mb-3">{{ message }}</v-alert>
-    <v-card v-if="canSubmit" border class="mb-4">
-      <v-card-title>{{ own ? 'Add another version' : 'Submit assignment' }}</v-card-title>
-      <v-card-text>
-        <v-file-input
-          v-model="files" label="PDF files" accept="application/pdf,.pdf" multiple
-          hint="PDF only; 25 MB maximum per file" persistent-hint
-        />
-      </v-card-text>
-      <v-card-actions><v-btn color="primary" :loading="saving" @click="submit">Submit files</v-btn></v-card-actions>
-    </v-card>
     <v-skeleton-loader v-if="loading" type="list-item-three-line@2" />
     <v-empty-state v-else-if="!submissions.length" headline="No submissions yet" />
     <v-expansion-panels v-else multiple>
@@ -73,15 +63,33 @@ onMounted(load)
             <strong>Version {{ version.versionNumber }}</strong>
             <v-chip v-if="version.isLate" color="warning" variant="flat" size="small" class="ml-2">Late</v-chip>
             <p class="text-medium-emphasis">{{ new Date(version.submittedAt).toLocaleString() }}</p>
-            <v-btn
-              v-for="file in version.files" :key="file.id" variant="text" prepend-icon="mdi-file-pdf-box"
-              @click="submissionService.download(file.id)"
-            >
-              {{ file.name }}
-            </v-btn>
+            <div v-for="file in version.files" :key="file.id" class="submission-file-row">
+              <v-icon icon="mdi-file-pdf-box" aria-hidden="true" />
+              <span class="submission-file-name">{{ file.name }}</span>
+              <v-tooltip text="Preview">
+                <template #activator="{ props: tooltipProps }"><v-btn v-bind="tooltipProps" icon="mdi-eye-outline" size="small" variant="text" :aria-label="`Preview ${file.name}`" @click="submissionService.preview(file.id)" /></template>
+              </v-tooltip>
+              <v-tooltip text="Download">
+                <template #activator="{ props: tooltipProps }"><v-btn v-bind="tooltipProps" icon="mdi-download" size="small" variant="text" :aria-label="`Download ${file.name}`" @click="submissionService.download(file.id)" /></template>
+              </v-tooltip>
+            </div>
           </div>
         </v-expansion-panel-text>
       </v-expansion-panel>
     </v-expansion-panels>
+    <template v-if="canSubmit">
+      <v-divider class="my-6" />
+      <h3 id="submit-heading">Submit your assignment</h3>
+      <v-card border class="mt-3">
+        <v-card-title>{{ own ? 'Add another version' : 'Submit assignment' }}</v-card-title>
+        <v-card-text>
+          <v-file-input
+            v-model="files" label="PDF files" accept="application/pdf,.pdf" multiple
+            hint="PDF only; 25 MB maximum per file" persistent-hint
+          />
+        </v-card-text>
+        <v-card-actions><v-btn color="primary" :disabled="!files.length" :loading="saving" @click="submit">Submit files</v-btn></v-card-actions>
+      </v-card>
+    </template>
   </section>
 </template>

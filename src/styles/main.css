@@ -141,6 +141,8 @@ html {
 .print-url { overflow-wrap: anywhere; }
 .print-actions { margin-top: 2rem; }
 .submission-panel { margin-top: 2.5rem; }
+.submission-file-row { display: flex; align-items: center; gap: 0.5rem; }
+.submission-file-name { flex: 1 1 auto; overflow-wrap: anywhere; }
 
 .item-pager { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
 .item-pager-bottom { margin-top: 2.5rem; padding-top: 1.5rem; border-top: 1px solid #ddd; }

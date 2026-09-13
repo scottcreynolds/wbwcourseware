@@ -39,8 +39,13 @@ export const submissionService = {
     await invoke('finalize-submission', { itemId, files: uploaded })
   },
 
+  async preview(fileId: string): Promise<void> {
+    const { url } = await invoke<{ url: string }>('submission-download', { fileId, mode: 'view' })
+    window.open(url, '_blank', 'noopener')
+  },
+
   async download(fileId: string): Promise<void> {
-    const { url } = await invoke<{ url: string }>('submission-download', { fileId })
+    const { url } = await invoke<{ url: string }>('submission-download', { fileId, mode: 'download' })
     window.location.assign(url)
   },
 }

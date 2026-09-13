@@ -13,14 +13,17 @@ Deno.serve(async (request) => {
   try { body = await request.json() } catch { return jsonResponse({ error: 'Invalid JSON' }, 400) }
   const fileId = typeof body.fileId === 'string' && uuidPattern.test(body.fileId) ? body.fileId : null
   if (!fileId) return jsonResponse({ error: 'File is required' }, 400)
+  const mode = body.mode === 'view' ? 'view' : 'download'
   const [{ data: readable }, { data: file }] = await Promise.all([
     context.caller.rpc('can_read_submission_file', { target_file_id: fileId }),
     context.admin.from('submission_files').select('storage_path,original_name').eq('id', fileId).single(),
   ])
   if (!readable || !file) return jsonResponse({ error: 'Not authorized' }, 403)
-  const { data, error } = await context.admin.storage.from('submissions').createSignedUrl(file.storage_path, 60, {
-    download: file.original_name,
-  })
+  const { data, error } = await context.admin.storage.from('submissions').createSignedUrl(
+    file.storage_path,
+    60,
+    mode === 'download' ? { download: file.original_name } : undefined,
+  )
   if (error) return jsonResponse({ error: 'Download could not be prepared' }, 500)
   return jsonResponse({ url: data.signedUrl })
 })
