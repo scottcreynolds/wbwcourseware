@@ -12,6 +12,26 @@ const activeTab=ref('my-work')
 const announcementListRef=ref<InstanceType<typeof AnnouncementList>|null>(null)
 const discussionBoardRef=ref<InstanceType<typeof DiscussionBoard>|null>(null)
 const availableCount=computed(()=>outline.value?.modules.filter(module=>module.isVisible).length??0)
+
+const expandedModulesKey=`student-course:${id}:expanded-modules`
+function readExpandedModules():string[]|null{
+  try{
+    const stored=localStorage.getItem(expandedModulesKey)
+    if(!stored) return null
+    const parsed:unknown=JSON.parse(stored)
+    return Array.isArray(parsed)?parsed.filter((value):value is string=>typeof value==='string'):null
+  }catch{
+    return null
+  }
+}
+const storedExpandedModules=readExpandedModules()
+const expandedModules=ref<string[]>(storedExpandedModules??[])
+let expandedModulesInitialized=storedExpandedModules!==null
+watch(expandedModules,(ids)=>{
+  try{localStorage.setItem(expandedModulesKey,JSON.stringify(ids))}
+  catch{/* ignore write failures, expansion state still applies for this session */}
+},{deep:true})
+
 async function refreshQuietly():Promise<void>{
   try{outline.value=await learningService.outline(id)}
   catch{/* background tab-switch refresh: keep the last-good cached outline visible and stay silent on failure */}
@@ -21,7 +41,17 @@ watch(activeTab,(tab)=>{
   else if(tab==='announcements') void announcementListRef.value?.refresh()
   else if(tab==='discussions') void discussionBoardRef.value?.refresh()
 })
-onMounted(async()=>{try{outline.value=await learningService.outline(id)}catch{errorMessage.value='This course is unavailable or you no longer have access.'}finally{loading.value=false}})
+onMounted(async()=>{
+  try{
+    outline.value=await learningService.outline(id)
+    if(!expandedModulesInitialized){
+      expandedModules.value=outline.value.modules.map(module=>module.id)
+      expandedModulesInitialized=true
+    }
+  }
+  catch{errorMessage.value='This course is unavailable or you no longer have access.'}
+  finally{loading.value=false}
+})
 </script>
 <template>
   <v-alert v-if="errorMessage" type="error">{{ errorMessage }}</v-alert><v-skeleton-loader v-else-if="loading" type="article,list-item-three-line@3" />
@@ -37,10 +67,12 @@ onMounted(async()=>{try{outline.value=await learningService.outline(id)}catch{er
     <v-window v-model="activeTab">
       <v-window-item value="my-work">
         <v-empty-state v-if="availableCount===0" headline="Nothing released yet" text="Your teacher will release modules when they are ready." />
-        <v-card v-for="module in outline.modules" :key="module.id" border class="mb-4" :class="{'locked-module':!module.isVisible}">
-          <v-card-title><v-icon :icon="module.isVisible?'mdi-book-open-page-variant':'mdi-lock-outline'" class="mr-2" />{{ module.title }}</v-card-title>
-          <v-card-text><p v-if="module.description">{{ module.description }}</p><p v-if="!module.isVisible" class="text-medium-emphasis">{{ module.releaseAt?`Available ${formatCourseDate(module.releaseAt,outline.course.timezone)}`:'Not released yet.' }}</p><v-list v-else-if="module.items.length"><v-list-item v-for="item in module.items" :key="item.id" :to="`/student/courses/${id}/items/${item.id}`" :title="item.title"><template #prepend><v-icon :icon="item.kind==='assignment'?'mdi-file-upload-outline':'mdi-text-box-outline'" /></template><v-list-item-subtitle v-if="item.dueAt">Due {{ formatCourseDate(item.dueAt,outline.course.timezone) }}</v-list-item-subtitle></v-list-item></v-list><p v-else class="text-medium-emphasis">No published items in this module.</p></v-card-text>
-        </v-card>
+        <v-expansion-panels v-else v-model="expandedModules" multiple>
+          <v-expansion-panel v-for="module in outline.modules" :key="module.id" :value="module.id" :class="{'locked-module':!module.isVisible}">
+            <v-expansion-panel-title><v-icon :icon="module.isVisible?'mdi-book-open-page-variant':'mdi-lock-outline'" class="mr-2" />{{ module.title }}</v-expansion-panel-title>
+            <v-expansion-panel-text><p v-if="module.description">{{ module.description }}</p><p v-if="!module.isVisible" class="text-medium-emphasis">{{ module.releaseAt?`Available ${formatCourseDate(module.releaseAt,outline.course.timezone)}`:'Not released yet.' }}</p><v-list v-else-if="module.items.length"><v-list-item v-for="item in module.items" :key="item.id" :to="`/student/courses/${id}/items/${item.id}`" :title="item.title"><template #prepend><v-icon :icon="item.kind==='assignment'?'mdi-file-upload-outline':'mdi-text-box-outline'" /></template><v-list-item-subtitle v-if="item.dueAt">Due {{ formatCourseDate(item.dueAt,outline.course.timezone) }}</v-list-item-subtitle></v-list-item></v-list><p v-else class="text-medium-emphasis">No published items in this module.</p></v-expansion-panel-text>
+          </v-expansion-panel>
+        </v-expansion-panels>
       </v-window-item>
       <v-window-item value="announcements">
         <AnnouncementList ref="announcementListRef" :course-id="id" />
