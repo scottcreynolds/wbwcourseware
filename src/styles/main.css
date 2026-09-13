@@ -111,6 +111,7 @@ html {
 .topic-summary { display: flex; flex-direction: column; gap: 0.15rem; text-align: left; }
 .topic-summary-title { font-weight: 600; }
 .topic-summary-meta { font-size: 0.85rem; }
+.announcement-highlight-label { display: flex; align-items: center; font-weight: 700; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.03em; padding: 0.75rem 1rem 0; }
 .monospace-input textarea { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
 .markdown-content { line-height: 1.65; }
 .markdown-content :is(p, ul, ol, blockquote, pre, table) { margin-block: 0 1em; }

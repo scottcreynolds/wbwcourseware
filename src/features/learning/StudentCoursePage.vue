@@ -24,10 +24,9 @@ watch(activeTab,(tab)=>{
 onMounted(async()=>{try{outline.value=await learningService.outline(id)}catch{errorMessage.value='This course is unavailable or you no longer have access.'}finally{loading.value=false}})
 </script>
 <template>
-  <v-btn to="/student" variant="text" prepend-icon="mdi-arrow-left" class="mb-4">My courses</v-btn>
   <v-alert v-if="errorMessage" type="error">{{ errorMessage }}</v-alert><v-skeleton-loader v-else-if="loading" type="article,list-item-three-line@3" />
   <template v-else-if="outline">
-    <header class="course-header"><p class="eyebrow">{{ outline.course.title }}</p><h2>{{ outline.course.title }}</h2><p>{{ outline.course.startDate }}–{{ outline.course.endDate }}</p></header>
+    <header class="course-header"><h2>{{ outline.course.title }}</h2><p>{{ outline.course.startDate }}–{{ outline.course.endDate }}</p></header>
     <v-card v-if="outline.course.introMarkdown.trim()" border class="mb-6"><v-card-text><MarkdownContent :source="outline.course.introMarkdown" /></v-card-text></v-card>
     <AnnouncementList :course-id="id" most-recent-only class="mb-6" />
     <v-tabs v-model="activeTab" class="mb-4">

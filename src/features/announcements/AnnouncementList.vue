@@ -134,18 +134,36 @@ onUnmounted(() => { if (refreshTimer) clearInterval(refreshTimer) })
     </v-card>
     <v-skeleton-loader v-if="loading" :type="mostRecentOnly ? 'article' : 'article@2'" />
     <v-empty-state v-else-if="!visibleAnnouncements.length && !mostRecentOnly" headline="No announcements" />
-    <v-card v-for="announcement in visibleAnnouncements" :key="announcement.id" border class="mb-3">
-      <v-card-title>{{ announcement.title }}</v-card-title>
-      <v-card-subtitle>{{ announcement.status }} · {{ new Date(announcement.published_at ?? announcement.created_at).toLocaleString() }}</v-card-subtitle>
-      <v-card-text><MarkdownContent :source="announcement.body_markdown" /></v-card-text>
-      <v-card-actions v-if="teacher">
-        <span v-if="announcement.status === 'published'" class="text-medium-emphasis">{{ deliverySummary(announcement) }}</span>
-        <v-btn v-else color="primary" :loading="saving" @click="publish(announcement.id)">Publish now</v-btn>
-        <v-spacer />
-        <v-btn variant="text" @click="openEdit(announcement)">Edit</v-btn>
-        <v-btn color="error" variant="text" @click="remove(announcement.id)">Delete</v-btn>
-      </v-card-actions>
-    </v-card>
+    <v-sheet v-if="mostRecentOnly && visibleAnnouncements.length" border rounded color="primary" variant="tonal" class="mb-6 announcement-highlight">
+      <div class="announcement-highlight-label"><v-icon icon="mdi-bullhorn-outline" size="small" class="mr-1" />Latest announcement</div>
+      <v-expansion-panels>
+        <v-expansion-panel v-for="announcement in visibleAnnouncements" :key="announcement.id">
+          <v-expansion-panel-title>
+            <div class="topic-summary">
+              <span class="topic-summary-title">{{ announcement.title }}</span>
+              <span class="topic-summary-meta text-medium-emphasis">{{ new Date(announcement.published_at ?? announcement.created_at).toLocaleString() }}</span>
+            </div>
+          </v-expansion-panel-title>
+          <v-expansion-panel-text>
+            <MarkdownContent :source="announcement.body_markdown" />
+          </v-expansion-panel-text>
+        </v-expansion-panel>
+      </v-expansion-panels>
+    </v-sheet>
+    <template v-if="!mostRecentOnly">
+      <v-card v-for="announcement in visibleAnnouncements" :key="announcement.id" border class="mb-3">
+        <v-card-title>{{ announcement.title }}</v-card-title>
+        <v-card-subtitle>{{ announcement.status }} · {{ new Date(announcement.published_at ?? announcement.created_at).toLocaleString() }}</v-card-subtitle>
+        <v-card-text><MarkdownContent :source="announcement.body_markdown" /></v-card-text>
+        <v-card-actions v-if="teacher">
+          <span v-if="announcement.status === 'published'" class="text-medium-emphasis">{{ deliverySummary(announcement) }}</span>
+          <v-btn v-else color="primary" :loading="saving" @click="publish(announcement.id)">Publish now</v-btn>
+          <v-spacer />
+          <v-btn variant="text" @click="openEdit(announcement)">Edit</v-btn>
+          <v-btn color="error" variant="text" @click="remove(announcement.id)">Delete</v-btn>
+        </v-card-actions>
+      </v-card>
+    </template>
     <v-dialog v-model="editDialog" max-width="36rem">
       <v-card title="Edit announcement">
         <v-card-text>

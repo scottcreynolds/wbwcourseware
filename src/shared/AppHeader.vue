@@ -31,7 +31,7 @@ async function signOut(): Promise<void> {
       <v-btn v-if="auth.status === 'anonymous'" to="/login" variant="text">Sign in</v-btn>
       <template v-else-if="auth.isAuthenticated && auth.profile">
         <v-btn :to="auth.profile.role === 'teacher' ? '/teacher' : '/student'" variant="text">
-          Dashboard
+          Courses
         </v-btn>
         <v-btn variant="text" @click="signOut">Sign out</v-btn>
       </template>

@@ -68,7 +68,7 @@ export const routes: RouteRecordRaw[] = [
     path: '/student/courses/:courseId',
     name: 'student-course',
     component: () => import('@/features/learning/StudentCoursePage.vue'),
-    meta: { title: 'Course materials', requiresAuth: true, requiredRole: 'student' },
+    meta: { title: '', requiresAuth: true, requiredRole: 'student' },
   },
   {
     path: '/student/courses/:courseId/items/:itemId',
