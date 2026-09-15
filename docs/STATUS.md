@@ -73,16 +73,19 @@ M9: Hardening and Deployment Readiness — implementation complete
 - Database indexes for ownership, release, due-date, enrollment, and rate-limit paths
 - Route focus management and visible keyboard focus
 - Deployment, observability, incident, backup, and restore runbooks
+- Teacher email notification on new student discussion topics and assignment
+  submissions, dispatched via a database trigger (pg_net) rather than a
+  client call, so it fires regardless of whether the teacher is online
 
 ## Verification
 
 - `pnpm typecheck`: pass
 - `pnpm lint`: pass
-- `pnpm test`: pass — 16 tests
+- `pnpm test`: pass — 25 tests
 - `pnpm build`: pass
-- `pnpm test:db`: pass — 70 assertions
-- `pnpm test:functions`: pass — 9 live boundary tests
-- `pnpm test:e2e`: pass — 7 public Chromium checks plus an authenticated local-staging teacher journey
+- `pnpm test:db`: pass — 106 assertions
+- `pnpm test:functions`: pass — 13 live boundary tests
+- `pnpm test:e2e`: pass — 9 public Chromium checks plus an authenticated local-staging teacher journey (1 skipped)
 
 ## Remaining launch gates
 
