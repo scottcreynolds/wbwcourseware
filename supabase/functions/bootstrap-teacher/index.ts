@@ -1,6 +1,7 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { corsHeaders } from '../_shared/cors.ts'
 import { jsonResponse } from '../_shared/http.ts'
+import { secretsMatch } from '../_shared/secretCompare.ts'
 
 type BootstrapRequest = {
   email?: unknown
@@ -12,17 +13,6 @@ function normalizeEmail(value: unknown): string | null {
   if (typeof value !== 'string') return null
   const email = value.trim().toLowerCase()
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? email : null
-}
-
-async function secretsMatch(provided: string, expected: string): Promise<boolean> {
-  const encoder = new TextEncoder()
-  const [providedHash, expectedHash] = await Promise.all([
-    crypto.subtle.digest('SHA-256', encoder.encode(provided)),
-    crypto.subtle.digest('SHA-256', encoder.encode(expected)),
-  ])
-  const a = new Uint8Array(providedHash)
-  const b = new Uint8Array(expectedHash)
-  return a.length === b.length && a.every((value, index) => value === b[index])
 }
 
 Deno.serve(async (request) => {

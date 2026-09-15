@@ -1,6 +1,7 @@
 import { corsHeaders } from '../_shared/cors.ts'
 import { requireFunctionContext } from '../_shared/auth.ts'
 import { jsonResponse } from '../_shared/http.ts'
+import { escapeHtml } from '../_shared/html.ts'
 
 type Delivery = {
   delivery_id: string
@@ -11,9 +12,6 @@ type Delivery = {
   attempts: number
 }
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
-const escapeHtml = (value: string) => value.replace(/[&<>"']/g, (character) => ({
-  '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
-}[character] ?? character))
 
 Deno.serve(async (request) => {
   if (request.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })

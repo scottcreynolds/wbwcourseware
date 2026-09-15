@@ -39,6 +39,7 @@
 - `announcement_deliveries(id, announcement_id, enrollment_id, email_normalized, status, provider_message_id, attempt_count, last_error_code, timestamps)`
 - `discussion_topics(id, cohort_id, author_id, title, body_markdown, deleted_at, timestamps)`
 - `discussion_replies(id, topic_id, author_id, body_markdown, deleted_at, timestamps)`
+- `teacher_notifications(id, kind, course_id, teacher_id, source_id, status, provider_message_id, attempt_count, last_error_code, timestamps)`
 
 ## Constraints
 
@@ -63,6 +64,7 @@
 | Submission metadata/files | Own read | Own write; cohort read | None |
 | Announcements | Own CRUD | Read published | None |
 | Discussions | Moderate | Cohort CRUD under rules | None |
+| Teacher notifications | Own read | None | None |
 
 Use dedicated safe views/RPCs for peer names and submission listings. Never expose invitation tokens, raw emails, provider errors, or private profile data to students.
 

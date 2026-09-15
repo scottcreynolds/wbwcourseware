@@ -1,10 +1,10 @@
 import {createClient} from 'npm:@supabase/supabase-js@2'
 import {corsHeaders} from '../_shared/cors.ts'
 import {jsonResponse} from '../_shared/http.ts'
+import {escapeHtml} from '../_shared/html.ts'
 
 const normalize=(value:unknown)=>typeof value==='string'&&/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim())?value.trim().toLowerCase():null
 const hex=(buffer:ArrayBuffer)=>[...new Uint8Array(buffer)].map(byte=>byte.toString(16).padStart(2,'0')).join('')
-const escapeHtml=(value:string)=>value.replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]??char))
 
 Deno.serve(async request=>{
   if(request.method==='OPTIONS')return new Response('ok',{headers:corsHeaders})

@@ -15,6 +15,7 @@ describe('Edge Function HTTP boundaries', () => {
   test.each([
     'accept-invite',
     'bootstrap-teacher',
+    'notify-teacher',
   ])('%s rejects unsupported methods', async (name) => {
     const response = await invoke(name)
 
@@ -56,5 +57,27 @@ describe('Edge Function HTTP boundaries', () => {
 
     expect(response.status).toBe(400)
     await expect(response.json()).resolves.toEqual({ error: 'Invitation is invalid or expired' })
+  })
+
+  test('notify-teacher rejects a request with no service-role bearer', async () => {
+    const response = await invoke('notify-teacher', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ notificationId: '00000000-0000-4000-8000-000000000000' }),
+    })
+
+    expect(response.status).toBe(401)
+    await expect(response.json()).resolves.toEqual({ error: 'Not authorized' })
+  })
+
+  test('notify-teacher rejects an incorrect bearer', async () => {
+    const response = await invoke('notify-teacher', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', authorization: 'Bearer incorrect' },
+      body: JSON.stringify({ notificationId: '00000000-0000-4000-8000-000000000000' }),
+    })
+
+    expect(response.status).toBe(401)
+    await expect(response.json()).resolves.toEqual({ error: 'Not authorized' })
   })
 })
