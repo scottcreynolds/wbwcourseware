@@ -76,12 +76,14 @@ M9: Hardening and Deployment Readiness — implementation complete
 - Teacher email notification on new student discussion topics and assignment
   submissions, dispatched via a database trigger (pg_net) rather than a
   client call, so it fires regardless of whether the teacher is online
+- Course outline export to Markdown, shown read-only in a dialog next to
+  Import outline, matching the import grammar exactly for round-tripping
 
 ## Verification
 
 - `pnpm typecheck`: pass
 - `pnpm lint`: pass
-- `pnpm test`: pass — 25 tests
+- `pnpm test`: pass — 27 tests
 - `pnpm build`: pass
 - `pnpm test:db`: pass — 106 assertions
 - `pnpm test:functions`: pass — 13 live boundary tests
