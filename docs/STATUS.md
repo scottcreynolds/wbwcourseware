@@ -67,7 +67,9 @@ M9: Hardening and Deployment Readiness — implementation complete
 - Teacher moderation across cohort content
 - Safe display-name projection without exposing student email
 - Released-item checks on peer submission metadata and signed downloads
-- Teacher missing/on-time/late submission overview support
+- Dedicated Submissions tab in the course editor (between Modules and Due
+  dates) with per-assignment submitted/not-submitted counts and teacher
+  missing/on-time/late submission overview support
 - Deleted discussion bodies hidden from students and made immutable
 - Restricted Edge Function CORS origin and production browser security headers
 - Database indexes for ownership, release, due-date, enrollment, and rate-limit paths
