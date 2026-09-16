@@ -9,8 +9,10 @@ import { formatCourseDate } from '@/features/learning/dateFormat'
 import { parseCourseOutline, serializeCourseOutline } from '@/features/courses/outlineParser'
 import { slugify } from '@/features/courses/slug'
 import { enrollmentService } from '@/features/enrollment/enrollmentService'
+import { submissionService } from '@/features/submissions/submissionService'
 import type { CourseEnrollment, CourseInvitation } from '@/types/enrollment'
 import type { CourseItem, CourseModule, CourseStatus, CourseWorkspace, CurriculumItemKind } from '@/types/course'
+import type { AssignmentSubmission } from '@/types/submission'
 import AnnouncementList from '@/features/announcements/AnnouncementList.vue'
 import DiscussionBoard from '@/features/discussions/DiscussionBoard.vue'
 import SubmissionPanel from '@/features/submissions/SubmissionPanel.vue'
@@ -24,7 +26,7 @@ const loading = ref(true)
 const saving = ref(false)
 const errorMessage = ref<string | null>(null)
 const notice = ref<string | null>(null)
-const validTabs = ['details', 'modules', 'release', 'students', 'announcements', 'discussions'] as const
+const validTabs = ['details', 'modules', 'submissions', 'release', 'students', 'announcements', 'discussions'] as const
 const requestedTab = String(route.query.tab ?? '')
 const activeTab = ref(validTabs.includes(requestedTab as (typeof validTabs)[number]) ? requestedTab : 'details')
 const announcementListRef = ref<InstanceType<typeof AnnouncementList> | null>(null)
@@ -101,6 +103,34 @@ watch(expandedModules, (ids) => {
 }, { deep: true })
 
 const assignments = computed(() => workspace.value?.items.filter((item) => item.kind === 'assignment') ?? [])
+const assignmentSubmissions = ref<Record<string, AssignmentSubmission[]>>({})
+const assignmentSubmissionsLoading = ref(false)
+
+function submittedCount(itemId: string): number {
+  return (assignmentSubmissions.value[itemId] ?? []).filter((submission) => submission.versions.length > 0).length
+}
+
+function notSubmittedCount(itemId: string): number {
+  return (assignmentSubmissions.value[itemId] ?? []).filter((submission) => submission.versions.length === 0).length
+}
+
+async function refreshAssignmentSubmissions(): Promise<void> {
+  if (assignments.value.length === 0) {
+    assignmentSubmissions.value = {}
+    return
+  }
+  assignmentSubmissionsLoading.value = true
+  try {
+    const entries = await Promise.all(
+      assignments.value.map(async (item) => [item.id, await submissionService.list(item.id)] as const),
+    )
+    assignmentSubmissions.value = Object.fromEntries(entries)
+  } catch {
+    errorMessage.value = 'Submission counts could not be loaded.'
+  } finally {
+    assignmentSubmissionsLoading.value = false
+  }
+}
 
 function itemById(id: string): CourseItem | undefined {
   return workspace.value?.items.find((item) => item.id === id)
@@ -164,6 +194,7 @@ async function refreshQuietly(): Promise<void> {
 const tabsWithSharedRefresh = new Set(['details', 'modules', 'release', 'students'])
 watch(activeTab, (tab) => {
   if (tabsWithSharedRefresh.has(tab)) void refreshQuietly()
+  else if (tab === 'submissions') void refreshAssignmentSubmissions()
   else if (tab === 'announcements') void announcementListRef.value?.refresh()
   else if (tab === 'discussions') void discussionBoardRef.value?.refresh()
 })
@@ -172,6 +203,7 @@ async function load(): Promise<void> {
   loading.value = true
   await refresh()
   loading.value = false
+  if (activeTab.value === 'submissions') await refreshAssignmentSubmissions()
 }
 
 async function run(action: () => Promise<void>, success: string): Promise<void> {
@@ -511,6 +543,7 @@ onMounted(load)
     <v-tabs v-model="activeTab" class="mb-4">
       <v-tab value="details">Details</v-tab>
       <v-tab value="modules">Modules</v-tab>
+      <v-tab value="submissions">Submissions</v-tab>
       <v-tab value="release">Due dates</v-tab>
       <v-tab value="students">Students</v-tab>
       <v-tab value="announcements">Announcements</v-tab>
@@ -620,6 +653,21 @@ onMounted(load)
           </v-expansion-panel>
         </v-expansion-panels>
       </v-window-item>
+      <v-window-item value="submissions">
+        <h2 class="mb-3">Submission review</h2>
+        <v-empty-state v-if="assignments.length === 0" headline="No assignments yet" text="Add an assignment item in Modules to review submissions." />
+        <v-skeleton-loader v-else-if="assignmentSubmissionsLoading" type="list-item-three-line@2" />
+        <v-expansion-panels v-else multiple>
+          <v-expansion-panel v-for="item in assignments" :key="item.id">
+            <v-expansion-panel-title>
+              {{ item.title }}
+              <v-chip size="x-small" color="success" variant="flat" class="ml-2">{{ submittedCount(item.id) }} submitted</v-chip>
+              <v-chip size="x-small" color="neutral" variant="flat" class="ml-1">{{ notSubmittedCount(item.id) }} not submitted</v-chip>
+            </v-expansion-panel-title>
+            <v-expansion-panel-text><SubmissionPanel :item-id="item.id" :preloaded-submissions="assignmentSubmissions[item.id] ?? []" /></v-expansion-panel-text>
+          </v-expansion-panel>
+        </v-expansion-panels>
+      </v-window-item>
       <v-window-item value="release">
         <h2 class="mb-3">Assignment due dates</h2>
         <v-card v-for="item in assignments" :key="item.id" border class="mb-3">
@@ -627,13 +675,6 @@ onMounted(load)
           <v-card-text><v-text-field :model-value="item.due_at ? isoToDatetimeLocal(item.due_at) : defaultDueDatetimeLocal()" type="datetime-local" label="Due date and time" @update:model-value="(value: string) => setDueAtLocal(item, value)" /></v-card-text>
           <v-card-actions><v-btn color="primary" @click="saveDueDate(item)">Save due date</v-btn></v-card-actions>
         </v-card>
-        <h2 class="mt-6 mb-3">Submission review</h2>
-        <v-expansion-panels multiple>
-          <v-expansion-panel v-for="item in assignments" :key="item.id">
-            <v-expansion-panel-title>{{ item.title }}</v-expansion-panel-title>
-            <v-expansion-panel-text><SubmissionPanel :item-id="item.id" /></v-expansion-panel-text>
-          </v-expansion-panel>
-        </v-expansion-panels>
       </v-window-item>
       <v-window-item value="students">
         <v-card border class="mb-4">

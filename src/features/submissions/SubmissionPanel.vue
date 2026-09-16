@@ -5,19 +5,21 @@ import { validateSubmissionFile } from '@/features/submissions/submissionRules'
 import { submissionService } from '@/features/submissions/submissionService'
 import type { AssignmentSubmission } from '@/types/submission'
 
-const props = defineProps<{ itemId: string; canSubmit?: boolean }>()
+const props = defineProps<{ itemId: string; canSubmit?: boolean; preloadedSubmissions?: AssignmentSubmission[] }>()
 const auth = useAuthStore()
-const submissions = ref<AssignmentSubmission[]>([])
+const ownFetchedSubmissions = ref<AssignmentSubmission[]>([])
+const submissions = computed(() => props.preloadedSubmissions ?? ownFetchedSubmissions.value)
 const files = ref<File[]>([])
-const loading = ref(true)
+const loading = ref(!props.preloadedSubmissions)
 const saving = ref(false)
 const message = ref<string | null>(null)
 const own = computed(() => submissions.value.find((entry) => entry.studentId === auth.profile?.id))
 
 async function load(): Promise<void> {
+  if (props.preloadedSubmissions) return
   loading.value = true
   try {
-    submissions.value = await submissionService.list(props.itemId)
+    ownFetchedSubmissions.value = await submissionService.list(props.itemId)
   } catch {
     message.value = 'Submissions could not be loaded.'
   } finally {
