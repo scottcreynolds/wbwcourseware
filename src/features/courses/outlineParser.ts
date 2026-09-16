@@ -51,3 +51,14 @@ export function parseCourseOutline(source: string): OutlineResult {
   return { modules, errors }
 }
 
+const kindLabel: Record<CurriculumItemKind, string> = { lecture: 'Lecture', assignment: 'Assignment' }
+
+export function serializeCourseOutline(modules: OutlineModule[]): string {
+  return modules
+    .map((module) => {
+      const itemLines = module.items.map((item) => `## ${kindLabel[item.kind]}: ${item.title}`)
+      return [`# Module: ${module.title}`, ...itemLines].join('\n')
+    })
+    .join('\n')
+}
+

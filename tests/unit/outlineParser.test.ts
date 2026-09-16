@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { parseCourseOutline } from '@/features/courses/outlineParser'
+import { parseCourseOutline, serializeCourseOutline } from '@/features/courses/outlineParser'
 
 describe('parseCourseOutline', () => {
   it('parses ordered modules and placeholders', () => {
@@ -24,6 +24,23 @@ describe('parseCourseOutline', () => {
   it('rejects items before a module and unknown lines', () => {
     const result = parseCourseOutline('## Lecture: Lost\nordinary text')
     expect(result.errors).toHaveLength(2)
+  })
+})
+
+describe('serializeCourseOutline', () => {
+  it('round-trips through parseCourseOutline', () => {
+    const source = `# Module: Foundations
+## Lecture: What a Scene Does
+## Assignment: Scene Analysis
+# Module: Character
+## Lecture: Want and Need`
+    const { modules, errors } = parseCourseOutline(source)
+    expect(errors).toEqual([])
+    expect(serializeCourseOutline(modules)).toBe(source)
+  })
+
+  it('omits items for an empty module', () => {
+    expect(serializeCourseOutline([{ title: 'Empty', items: [] }])).toBe('# Module: Empty')
   })
 })
 

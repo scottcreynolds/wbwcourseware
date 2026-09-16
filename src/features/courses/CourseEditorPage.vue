@@ -6,7 +6,7 @@ import { pageTitleOverride } from '@/app/pageTitle'
 import { courseService } from '@/features/courses/courseService'
 import { datetimeLocalToIso, defaultDueDatetimeLocal, isoToDatetimeLocal } from '@/features/courses/datetimeLocal'
 import { formatCourseDate } from '@/features/learning/dateFormat'
-import { parseCourseOutline } from '@/features/courses/outlineParser'
+import { parseCourseOutline, serializeCourseOutline } from '@/features/courses/outlineParser'
 import { slugify } from '@/features/courses/slug'
 import { enrollmentService } from '@/features/enrollment/enrollmentService'
 import type { CourseEnrollment, CourseInvitation } from '@/types/enrollment'
@@ -57,6 +57,17 @@ const outlineSource = ref(`# Module: Foundations
 ## Lecture: What a Scene Does
 ## Assignment: Scene Analysis`)
 const outlineResult = computed(() => parseCourseOutline(outlineSource.value))
+const exportOutlineDialog = ref(false)
+const exportOutlineSource = computed(() => {
+  if (!workspace.value) return ''
+  const ordered = [...workspace.value.modules].sort((a, b) => a.position - b.position)
+  return serializeCourseOutline(
+    ordered.map((module) => ({
+      title: module.title,
+      items: itemsFor(module.id).map((item) => ({ kind: item.kind, title: item.title })),
+    })),
+  )
+})
 const duplicateDialog = ref(false)
 const duplicateTitle = ref('')
 
@@ -541,7 +552,7 @@ onMounted(load)
       <v-window-item value="modules">
         <div class="section-heading mb-4">
           <h2>Modules</h2>
-          <div class="actions compact-actions"><v-btn variant="outlined" @click="outlineDialog = true">Import outline</v-btn><v-btn color="primary" @click="moduleDialog = true">Add module</v-btn></div>
+          <div class="actions compact-actions"><v-btn variant="outlined" @click="outlineDialog = true">Import outline</v-btn><v-btn variant="outlined" @click="exportOutlineDialog = true">Export outline</v-btn><v-btn color="primary" @click="moduleDialog = true">Add module</v-btn></div>
         </div>
         <v-empty-state v-if="workspace.modules.length === 0" headline="No modules yet" text="Add one module or import your whole outline." />
         <v-expansion-panels v-else :ref="(el: Element | ComponentPublicInstance | null) => registerModulesList(el)" v-model="expandedModules" multiple>
@@ -731,6 +742,15 @@ onMounted(load)
         </div>
       </v-card-text>
       <v-card-actions><v-spacer /><v-btn @click="outlineDialog = false">Cancel</v-btn><v-btn color="primary" :disabled="outlineResult.errors.length > 0" :loading="saving" @click="importOutline">Import</v-btn></v-card-actions>
+    </v-card>
+  </v-dialog>
+  <v-dialog v-model="exportOutlineDialog" max-width="64rem">
+    <v-card title="Export course outline">
+      <v-card-text>
+        <p class="mb-3 text-medium-emphasis">Markdown representation of this course's modules and items, in current order.</p>
+        <v-textarea :model-value="exportOutlineSource" label="Markdown outline" rows="16" readonly class="monospace-input" />
+      </v-card-text>
+      <v-card-actions><v-spacer /><v-btn color="primary" @click="exportOutlineDialog = false">Close</v-btn></v-card-actions>
     </v-card>
   </v-dialog>
   <v-dialog v-model="duplicateDialog" max-width="32rem">
