@@ -14,6 +14,22 @@ Priority order:
 
 If sources conflict, stop and report conflict.
 
+## Commit authorization
+
+Standing authorization to commit in this repo: after completing a discrete,
+reviewed change (a task, a fix, a doc reconciliation), commit it directly
+without asking first, as long as:
+
+- The change is atomic — one logical concern per commit, split otherwise.
+- Working tree state was inspected first (`git status`/`git diff`) and
+  nothing unexpected or unrelated is swept in.
+- The message follows this file's Git Commit Convention.
+- No destructive or history-rewriting operation is involved (those still
+  require explicit per-instance confirmation).
+
+This does not authorize pushing to a remote — that still requires an
+explicit ask each time.
+
 ## Required workflow
 
 1. Inspect repository and working tree.
