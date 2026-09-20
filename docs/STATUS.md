@@ -80,6 +80,9 @@ M9: Hardening and Deployment Readiness — implementation complete
   client call, so it fires regardless of whether the teacher is online
 - Course outline export to Markdown, shown read-only in a dialog next to
   Import outline, matching the import grammar exactly for round-tripping
+- Submission deletion: a student may delete their own submission and a
+  teacher may delete any submission for a course they own, removing every
+  version, file, and the underlying storage object for all viewers
 
 ## Verification
 
@@ -87,8 +90,8 @@ M9: Hardening and Deployment Readiness — implementation complete
 - `pnpm lint`: pass
 - `pnpm test`: pass — 27 tests
 - `pnpm build`: pass
-- `pnpm test:db`: pass — 106 assertions
-- `pnpm test:functions`: pass — 13 live boundary tests
+- `pnpm test:db`: pass — 113 assertions
+- `pnpm test:functions`: pass — 14 live boundary tests
 - `pnpm test:e2e`: pass — 9 public Chromium checks plus an authenticated local-staging teacher journey (1 skipped)
 
 ## Remaining launch gates

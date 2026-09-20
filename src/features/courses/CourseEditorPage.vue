@@ -664,7 +664,7 @@ onMounted(load)
               <v-chip size="x-small" color="success" variant="flat" class="ml-2">{{ submittedCount(item.id) }} submitted</v-chip>
               <v-chip size="x-small" color="neutral" variant="flat" class="ml-1">{{ notSubmittedCount(item.id) }} not submitted</v-chip>
             </v-expansion-panel-title>
-            <v-expansion-panel-text><SubmissionPanel :item-id="item.id" :preloaded-submissions="assignmentSubmissions[item.id] ?? []" /></v-expansion-panel-text>
+            <v-expansion-panel-text><SubmissionPanel :item-id="item.id" teacher :preloaded-submissions="assignmentSubmissions[item.id] ?? []" @deleted="refreshAssignmentSubmissions" /></v-expansion-panel-text>
           </v-expansion-panel>
         </v-expansion-panels>
       </v-window-item>

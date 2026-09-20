@@ -28,6 +28,7 @@ describe('Edge Function HTTP boundaries', () => {
     'finalize-submission',
     'invite-student',
     'publish-announcement',
+    'submission-delete',
     'submission-download',
     'submission-upload-intent',
   ])('%s rejects unauthenticated requests at the gateway', async (name) => {

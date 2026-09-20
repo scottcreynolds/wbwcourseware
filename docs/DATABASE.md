@@ -51,6 +51,7 @@
 - Unique submission per cohort assignment/student.
 - Unique version number per submission.
 - File MIME exactly `application/pdf`, size `1..26214400`.
+- Submission delete is whole-envelope only (owning student or teacher); no version content is ever mutated in place.
 - Position nonnegative; reorder transaction normalizes positions.
 
 ## RLS policy matrix
@@ -61,7 +62,7 @@
 | Cohort admin rows | Own CRUD | Visible projection only | None |
 | Visible modules/items | Own CRUD | Read released/published | None |
 | Enrollment roster | Own CRUD | Minimal peer display only | None |
-| Submission metadata/files | Own read | Own write; cohort read | None |
+| Submission metadata/files | Own read; delete any | Own read/delete; cohort read | None |
 | Announcements | Own CRUD | Read published | None |
 | Discussions | Moderate | Cohort CRUD under rules | None |
 | Teacher notifications | Own read | None | None |
@@ -75,6 +76,7 @@ Use dedicated safe views/RPCs for peer names and submission listings. Never expo
 - Removed student denial
 - Draft/unreleased content denial
 - Student cannot mutate due dates, roles, ownership, publication, or other submissions
+- Student cannot delete another student's submission; deleting their own removes every version, file, and the underlying storage object
 - Signed URL authorization checks same rules as metadata
 - Direct object ID guessing fails
 

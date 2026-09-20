@@ -5,15 +5,20 @@ import { validateSubmissionFile } from '@/features/submissions/submissionRules'
 import { submissionService } from '@/features/submissions/submissionService'
 import type { AssignmentSubmission } from '@/types/submission'
 
-const props = defineProps<{ itemId: string; canSubmit?: boolean; preloadedSubmissions?: AssignmentSubmission[] }>()
+const props = defineProps<{ itemId: string; canSubmit?: boolean; teacher?: boolean; preloadedSubmissions?: AssignmentSubmission[] }>()
+const emit = defineEmits<{ deleted: [] }>()
 const auth = useAuthStore()
 const ownFetchedSubmissions = ref<AssignmentSubmission[]>([])
 const submissions = computed(() => props.preloadedSubmissions ?? ownFetchedSubmissions.value)
 const files = ref<File[]>([])
 const loading = ref(!props.preloadedSubmissions)
 const saving = ref(false)
+const deletingId = ref<string | null>(null)
 const message = ref<string | null>(null)
 const own = computed(() => submissions.value.find((entry) => entry.studentId === auth.profile?.id))
+function canDelete(submission: AssignmentSubmission): boolean {
+  return Boolean(props.teacher || submission.studentId === auth.profile?.id)
+}
 
 async function load(): Promise<void> {
   if (props.preloadedSubmissions) return
@@ -47,6 +52,23 @@ async function submit(): Promise<void> {
   }
 }
 
+async function remove(submission: AssignmentSubmission): Promise<void> {
+  if (!submission.id) return
+  if (!window.confirm(`Delete ${submission.studentName}'s submission? This removes every version and file.`)) return
+  deletingId.value = submission.id
+  message.value = null
+  try {
+    await submissionService.remove(submission.id)
+    message.value = 'Submission deleted.'
+    await load()
+    emit('deleted')
+  } catch {
+    message.value = 'Submission could not be deleted.'
+  } finally {
+    deletingId.value = null
+  }
+}
+
 onMounted(load)
 </script>
 
@@ -61,6 +83,7 @@ onMounted(load)
         <v-expansion-panel-title>{{ submission.studentName }} · {{ submission.versions.length ? `${submission.versions.length} version${submission.versions.length === 1 ? '' : 's'}` : 'Missing' }}</v-expansion-panel-title>
         <v-expansion-panel-text>
           <p v-if="!submission.versions.length" class="text-medium-emphasis">No submission received.</p>
+          <v-btn v-if="submission.id && canDelete(submission)" color="error" variant="text" size="small" prepend-icon="mdi-delete-outline" :loading="deletingId === submission.id" class="mb-3" @click="remove(submission)">Delete submission</v-btn>
           <div v-for="version in submission.versions" :key="version.id" class="mb-4">
             <strong>Version {{ version.versionNumber }}</strong>
             <v-chip v-if="version.isLate" color="warning" variant="flat" size="small" class="ml-2">Late</v-chip>

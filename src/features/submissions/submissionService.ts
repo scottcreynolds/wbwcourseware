@@ -48,4 +48,8 @@ export const submissionService = {
     const { url } = await invoke<{ url: string }>('submission-download', { fileId, mode: 'download' })
     window.location.assign(url)
   },
+
+  async remove(submissionId: string): Promise<void> {
+    await invoke('submission-delete', { submissionId })
+  },
 }
