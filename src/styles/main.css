@@ -144,6 +144,14 @@ html {
 .submission-panel { margin-top: 2.5rem; }
 .submission-file-row { display: flex; align-items: center; gap: 0.5rem; }
 .submission-file-name { flex: 1 1 auto; overflow-wrap: anywhere; }
+.submission-section-heading { margin-top: 1.5rem; margin-bottom: .5rem; }
+.submission-row { display: grid; grid-template-columns: minmax(0,10rem) minmax(0,1fr) minmax(0,12rem) auto; gap: .75rem; align-items: center; padding: .6rem 0; border-bottom: 1px solid #ddd; }
+.v-theme--writersBeWritingDark .submission-row { border-bottom-color: #3a3a3a; }
+.submission-row-student { font-weight: 600; overflow-wrap: anywhere; }
+.submission-row-files { display: flex; flex-direction: column; gap: .25rem; min-width: 0; }
+.submission-row-date { color: #4a4a4a; font-size: .9rem; white-space: nowrap; }
+.v-theme--writersBeWritingDark .submission-row-date { color: #bbb; }
+.submission-row-actions { display: flex; justify-content: flex-end; }
 
 .item-pager { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
 .item-pager-bottom { margin-top: 2.5rem; padding-top: 1.5rem; border-top: 1px solid #ddd; }
@@ -168,6 +176,8 @@ html {
   .editor-meta-grid { display: block; }
   .outline-item-row { grid-template-columns: 1fr; }
   .invite-row { grid-template-columns: 1fr; }
+  .submission-row { grid-template-columns: 1fr; }
+  .submission-row-actions { justify-content: flex-start; }
 }
 
 @media print {
