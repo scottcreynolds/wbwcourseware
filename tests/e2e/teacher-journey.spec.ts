@@ -32,9 +32,8 @@ test('teacher and student complete the local-staging course journey', async ({ p
   await page.getByRole('option', { name: 'published', exact: true }).click()
   await expect(itemStatus).toHaveValue('published')
   await page.getByLabel('Markdown and sanitized HTML').fill('# Submit your scene analysis')
-  await page.getByRole('button', { name: 'Save', exact: true }).click()
-  await expect(page.getByText('Curriculum item saved.')).toBeVisible()
-  await page.getByRole('link', { name: 'Back to course' }).click()
+  await page.getByRole('button', { name: 'Save & close', exact: true }).click()
+  await expect(page.getByText('Course details')).toBeVisible()
 
   const courseStatus = page.getByRole('combobox', { name: 'Status' })
   await page.locator('.v-select').nth(3).click()

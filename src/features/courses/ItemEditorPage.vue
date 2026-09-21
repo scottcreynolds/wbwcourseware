@@ -16,7 +16,6 @@ const resources = ref<CourseItemResource[]>([])
 const loading = ref(true)
 const saving = ref(false)
 const errorMessage = ref<string | null>(null)
-const notice = ref<string | null>(null)
 const uploadingAsset = ref(false)
 const resourceTitle = ref('')
 const resourceUrl = ref('')
@@ -43,7 +42,7 @@ async function load(): Promise<void> {
   }
 }
 
-async function save(): Promise<void> {
+async function saveAndClose(): Promise<void> {
   if (!item.value) return
   saving.value = true
   errorMessage.value = null
@@ -52,7 +51,7 @@ async function save(): Promise<void> {
     if (item.value.kind === 'assignment') {
       await courseService.updateDueDate(itemId, item.value.due_at)
     }
-    notice.value = 'Curriculum item saved.'
+    await router.push(`/teacher/courses/${courseId}?tab=modules`)
   } catch {
     errorMessage.value = 'Curriculum item could not be saved.'
   } finally {
@@ -158,11 +157,10 @@ onMounted(load)
         <label class="file-button"><span>{{ uploadingAsset ? 'Uploading…' : 'Upload image or PDF' }}</span><input type="file" accept="image/png,image/jpeg,image/gif,image/webp,application/pdf" :disabled="uploadingAsset" @change="uploadAsset"></label>
         <v-textarea v-model="item.body_markdown" label="Markdown and sanitized HTML" rows="18" class="monospace-input" />
       </v-card-text>
-      <v-card-actions><v-btn color="primary" :loading="saving" @click="save">Save</v-btn><v-spacer /><v-btn color="error" variant="text" @click="deleteItem">Delete item</v-btn></v-card-actions>
+      <v-card-actions><v-btn color="primary" :loading="saving" @click="saveAndClose">Save &amp; close</v-btn><v-spacer /><v-btn color="error" variant="text" @click="deleteItem">Delete item</v-btn></v-card-actions>
     </v-card>
     <v-card border class="mb-6"><v-card-title>Preview</v-card-title><v-card-text><MarkdownContent :source="item.body_markdown" /></v-card-text></v-card>
     <v-card border><v-card-title class="section-heading">Resources <v-btn size="small" @click="resourceDialog = true">Add resource</v-btn></v-card-title><v-list v-if="resources.length"><v-list-item v-for="(resource, index) in resources" :key="resource.id" :title="resource.title" :subtitle="resource.url"><template #append><div class="row-actions"><v-btn icon="mdi-arrow-up" size="small" variant="text" :disabled="index === 0" @click="moveResource(resource.id, -1)" /><v-btn icon="mdi-arrow-down" size="small" variant="text" :disabled="index === resources.length - 1" @click="moveResource(resource.id, 1)" /><v-btn icon="mdi-delete-outline" size="small" variant="text" aria-label="Delete resource" @click="deleteResource(resource.id)" /></div></template></v-list-item></v-list><v-card-text v-else>No supplemental resources yet.</v-card-text></v-card>
   </template>
   <v-dialog v-model="resourceDialog" max-width="36rem"><v-card title="Add resource"><v-card-text><v-text-field v-model="resourceTitle" label="Title" /><v-text-field v-model="resourceUrl" label="URL" type="url" placeholder="https://" /></v-card-text><v-card-actions><v-spacer /><v-btn @click="resourceDialog = false">Cancel</v-btn><v-btn color="primary" :disabled="!resourceTitle.trim() || !resourceUrl.trim()" @click="addResource">Add</v-btn></v-card-actions></v-card></v-dialog>
-  <v-snackbar :model-value="notice !== null" timeout="2500" @update:model-value="notice = $event ? notice : null">{{ notice }}</v-snackbar>
 </template>
