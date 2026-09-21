@@ -1,5 +1,5 @@
 begin;
-select plan(16);
+select plan(17);
 
 select has_table('public', 'submissions', 'submissions table exists');
 select has_table('public', 'submission_versions', 'submission versions table exists');
@@ -45,6 +45,12 @@ insert into public.submission_files(id, version_id, storage_path, original_name,
 values ('22222222-2222-2222-2222-222222222227','22222222-2222-2222-2222-222222222226',
   '22222222-2222-2222-2222-222222222222/22222222-2222-2222-2222-222222222224/file.pdf','file.pdf','application/pdf',1000);
 
+-- A pending teacher notification for this version must not survive the
+-- submission being deleted -- otherwise it would dispatch later and 404
+-- inside notify-teacher when it tries to look up the now-gone version.
+insert into public.teacher_notifications(kind, course_id, teacher_id, source_id)
+values ('submission','22222222-2222-2222-2222-222222222223','22222222-2222-2222-2222-222222222221','22222222-2222-2222-2222-222222222226');
+
 select is(
   (select storage_path from public.delete_submission('22222222-2222-2222-2222-222222222225')),
   '22222222-2222-2222-2222-222222222222/22222222-2222-2222-2222-222222222224/file.pdf',
@@ -64,6 +70,11 @@ select is(
   (select count(*)::int from public.submission_files where version_id = '22222222-2222-2222-2222-222222222226'),
   0,
   'delete_submission removes every file'
+);
+select is(
+  (select count(*)::int from public.teacher_notifications where source_id = '22222222-2222-2222-2222-222222222226'),
+  0,
+  'delete_submission removes the pending teacher notification for the deleted version'
 );
 select throws_ok(
   $$select public.delete_submission('22222222-2222-2222-2222-222222222225')$$,
