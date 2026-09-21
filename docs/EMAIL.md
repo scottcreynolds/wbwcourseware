@@ -56,23 +56,56 @@ Mechanism (see `supabase/migrations/20260914000200_teacher_notifications.sql`):
 `pg_net` calls carry no secrets of their own, so the dispatch trigger reads
 the Edge Function URL and the service-role key from Supabase Vault rather
 than from migration SQL. This must be set once per environment (local and
-production are separate Vault stores) via the SQL editor or `psql`:
+production are separate Vault stores). Until both secrets exist, notification
+rows are queued but never dispatched, silently — check `teacher_notifications`
+for stuck `pending` rows with `attempt_count = 0` if this step was skipped.
 
-```sql
-select vault.create_secret('http://kong:8000/functions/v1/notify-teacher', 'notify_teacher_function_url');
-select vault.create_secret('<service-role-key-from-supabase-status>', 'notify_teacher_service_key');
+Run it with the operator script rather than pasting SQL by hand (the script
+reads the actual secret values from env/CLI at run time, so nothing sensitive
+is pasted into a SQL editor or committed to git):
+
+```sh
+pnpm provision:notify-vault
 ```
+
+It prompts for `local` or `production`. Locally it reads `LOCAL_REST_URL`,
+`LOCAL_NOTIFY_TEACHER_FUNCTION_URL`, and `SUPABASE_SERVICE_ROLE_KEY` from
+`supabase/.env` (defaults already point at the local stack — see
+`supabase/.env.example`). For production, pass the values as env vars at
+invocation time rather than storing them in a file:
+
+```sh
+PRODUCTION_SERVICE_ROLE_KEY=<service-role-key-from-dashboard> \
+SUPABASE_REST_URL=https://<project-ref>.supabase.co/rest/v1 \
+SUPABASE_NOTIFY_TEACHER_FUNCTION_URL=https://<project-ref>.supabase.co/functions/v1/notify-teacher \
+pnpm provision:notify-vault
+```
+
+The script calls `public.provision_notify_teacher_vault_secrets`, a
+`service_role`-only RPC (see
+`supabase/migrations/20260921000100_notify_teacher_vault_provisioning.sql`)
+that upserts both secrets in Vault. Re-running it (e.g. after rotating the
+service-role key) is safe — it updates existing secrets in place rather than
+erroring on conflict.
 
 Locally, `pg_net` calls out from inside the database container, which sits on
 the project's own Docker network alongside Kong (the API gateway) — the
 host-exposed `127.0.0.1:55321` is not reachable from inside that network, so
-the URL must be the internal `kong:8000` address shown above, not the
-`APP_ORIGIN`/`FUNCTIONS_URL` value used everywhere else. For production,
-substitute the deployed function URL
-(`https://<project-ref>.supabase.co/functions/v1/notify-teacher`) and the
-production service-role key. Until both secrets exist, notification rows are
-queued but never dispatched — check `teacher_notifications` for stuck
-`pending` rows if this step was skipped.
+the function URL must be the internal `kong:8000` address (the script's
+local default), not the `APP_ORIGIN`/`FUNCTIONS_URL` value used everywhere
+else.
+
+<details>
+<summary>Manual fallback (SQL editor / psql)</summary>
+
+```sql
+select public.provision_notify_teacher_vault_secrets(
+  'http://kong:8000/functions/v1/notify-teacher', -- or the deployed function URL in production
+  '<service-role-key-from-supabase-status-or-dashboard>'
+);
+```
+
+</details>
 
 ### Local development requires `functions serve` running
 
