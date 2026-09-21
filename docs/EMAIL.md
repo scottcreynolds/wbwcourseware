@@ -69,17 +69,23 @@ pnpm provision:notify-vault
 ```
 
 It prompts for `local` or `production`. Locally it reads `LOCAL_REST_URL`,
-`LOCAL_NOTIFY_TEACHER_FUNCTION_URL`, and `SUPABASE_SERVICE_ROLE_KEY` from
-`supabase/.env` (defaults already point at the local stack — see
-`supabase/.env.example`). For production, pass the values as env vars at
-invocation time rather than storing them in a file:
+`LOCAL_NOTIFY_TEACHER_FUNCTION_URL`, and the service-role key from
+`supabase status -o json` automatically (override with `supabase/.env` or
+`SUPABASE_SERVICE_ROLE_KEY` if needed — defaults already point at the local
+stack, see `supabase/.env.example`).
+
+For production, the REST and function URLs are derived automatically from
+the linked project ref (`supabase status`'s `linked_project_ref`, or
+`SUPABASE_PROJECT_REF` to override) — the only value you must supply
+yourself is the service-role key, as an env var at invocation time rather
+than stored in a file:
 
 ```sh
-PRODUCTION_SERVICE_ROLE_KEY=<service-role-key-from-dashboard> \
-SUPABASE_REST_URL=https://<project-ref>.supabase.co/rest/v1 \
-SUPABASE_NOTIFY_TEACHER_FUNCTION_URL=https://<project-ref>.supabase.co/functions/v1/notify-teacher \
-pnpm provision:notify-vault
+PRODUCTION_SERVICE_ROLE_KEY=<service-role-key-from-dashboard> pnpm provision:notify-vault
 ```
+
+The script prints the REST/function URLs it derived before using them, so
+you can confirm they point at the right project.
 
 The script calls `public.provision_notify_teacher_vault_secrets`, a
 `service_role`-only RPC (see

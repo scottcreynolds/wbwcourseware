@@ -11,10 +11,9 @@ const execFileAsync = promisify(execFile)
 const defaultLocalRestUrl = 'http://127.0.0.1:55321/rest/v1'
 const defaultLocalFunctionUrl = 'http://kong:8000/functions/v1/notify-teacher'
 
-async function readLocalServiceRoleKey() {
+async function readSupabaseStatus() {
   const { stdout } = await execFileAsync('supabase', ['status', '-o', 'json'])
-  const status = JSON.parse(stdout)
-  return typeof status.SERVICE_ROLE_KEY === 'string' ? status.SERVICE_ROLE_KEY : ''
+  return JSON.parse(stdout)
 }
 
 async function readEnvFile(path) {
@@ -48,25 +47,38 @@ try {
   if (choice !== 'local' && choice !== 'production') throw new Error('Choose exactly "local" or "production".')
 
   const isLocal = choice === 'local'
-  const restUrl = isLocal
-    ? String(config.LOCAL_REST_URL ?? defaultLocalRestUrl).trim()
-    : String(config.SUPABASE_REST_URL ?? '').trim()
-  const functionUrl = isLocal
-    ? String(config.LOCAL_NOTIFY_TEACHER_FUNCTION_URL ?? defaultLocalFunctionUrl).trim()
-    : String(config.SUPABASE_NOTIFY_TEACHER_FUNCTION_URL ?? '').trim()
-  const serviceKey = isLocal
-    ? String(config.SUPABASE_SERVICE_ROLE_KEY ?? (await readLocalServiceRoleKey().catch(() => ''))).trim()
-    : String(config.PRODUCTION_SERVICE_ROLE_KEY ?? '').trim()
 
-  if (!restUrl) throw new Error(isLocal ? 'Set LOCAL_REST_URL (or run `supabase start` first).' : 'Set SUPABASE_REST_URL for production.')
-  if (!functionUrl) throw new Error(isLocal ? 'Set LOCAL_NOTIFY_TEACHER_FUNCTION_URL.' : 'Set SUPABASE_NOTIFY_TEACHER_FUNCTION_URL for production.')
-  if (!serviceKey) {
-    throw new Error(isLocal
-      ? 'Could not read the local service-role key. Run `supabase start` first, or set SUPABASE_SERVICE_ROLE_KEY.'
-      : 'Set PRODUCTION_SERVICE_ROLE_KEY (from the Supabase dashboard; never commit this).')
+  let restUrl
+  let functionUrl
+  let serviceKey
+
+  const status = await readSupabaseStatus().catch(() => null)
+
+  if (isLocal) {
+    const statusRestUrl = status?.API_URL ? `${status.API_URL}/rest/v1` : undefined
+    restUrl = String(config.LOCAL_REST_URL ?? statusRestUrl ?? defaultLocalRestUrl).trim()
+    functionUrl = String(config.LOCAL_NOTIFY_TEACHER_FUNCTION_URL ?? defaultLocalFunctionUrl).trim()
+    serviceKey = String(config.SUPABASE_SERVICE_ROLE_KEY ?? status?.SERVICE_ROLE_KEY ?? '').trim()
+    if (!serviceKey) throw new Error('Could not read the local service-role key. Run `supabase start` first, or set SUPABASE_SERVICE_ROLE_KEY.')
+  } else {
+    const projectRef = String(config.SUPABASE_PROJECT_REF ?? status?.linked_project_ref ?? '').trim()
+    if (!projectRef) {
+      throw new Error('Could not determine the production project ref. Run `supabase link` first, or set SUPABASE_PROJECT_REF explicitly.')
+    }
+    restUrl = String(config.SUPABASE_REST_URL ?? `https://${projectRef}.supabase.co/rest/v1`).trim()
+    functionUrl = String(config.SUPABASE_NOTIFY_TEACHER_FUNCTION_URL ?? `https://${projectRef}.supabase.co/functions/v1/notify-teacher`).trim()
+    serviceKey = String(config.PRODUCTION_SERVICE_ROLE_KEY ?? '').trim()
+    if (!serviceKey) {
+      throw new Error('Set PRODUCTION_SERVICE_ROLE_KEY (from the Supabase dashboard -> Project Settings -> API; never commit this). '
+        + `Detected project ref ${projectRef}; REST/function URLs were derived automatically -- only the key needs to be provided.`)
+    }
   }
 
   reader.close()
+  console.log(`Target: ${choice}`)
+  console.log(`  REST URL:     ${restUrl}`)
+  console.log(`  Function URL: ${functionUrl}`)
+
   const response = await fetch(`${restUrl}/rpc/provision_notify_teacher_vault_secrets`, {
     method: 'POST',
     headers: {
