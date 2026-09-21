@@ -102,6 +102,26 @@ watch(expandedModules, (ids) => {
   }
 }, { deep: true })
 
+const expandedSubmissionModulesKey = `course-editor:${courseId}:expanded-submission-modules`
+function readExpandedSubmissionModules(): string[] {
+  try {
+    const stored = localStorage.getItem(expandedSubmissionModulesKey)
+    if (!stored) return []
+    const parsed: unknown = JSON.parse(stored)
+    return Array.isArray(parsed) ? parsed.filter((value): value is string => typeof value === 'string') : []
+  } catch {
+    return []
+  }
+}
+const expandedSubmissionModules = ref<string[]>(readExpandedSubmissionModules())
+watch(expandedSubmissionModules, (ids) => {
+  try {
+    localStorage.setItem(expandedSubmissionModulesKey, JSON.stringify(ids))
+  } catch {
+    // ignore write failures, expansion state still applies for this session
+  }
+}, { deep: true })
+
 const assignments = computed(() => workspace.value?.items.filter((item) => item.kind === 'assignment') ?? [])
 const assignmentSubmissions = ref<Record<string, AssignmentSubmission[]>>({})
 const assignmentSubmissionsLoading = ref(false)
@@ -669,19 +689,23 @@ onMounted(load)
         <v-empty-state v-if="assignments.length === 0" headline="No assignments yet" text="Add an assignment item in Modules to review submissions." />
         <v-skeleton-loader v-else-if="assignmentSubmissionsLoading" type="list-item-three-line@2" />
         <template v-else>
-          <section v-for="group in assignmentsByModule" :key="group.module?.id ?? 'unplaced'" class="mb-6">
-            <h3 class="mb-2">{{ group.module ? group.module.title : 'Not in a module' }}</h3>
-            <v-expansion-panels multiple>
-              <v-expansion-panel v-for="item in group.items" :key="item.id">
-                <v-expansion-panel-title>
-                  {{ item.title }}
-                  <v-chip size="x-small" color="success" variant="flat" class="ml-2">{{ submittedCount(item.id) }} submitted</v-chip>
-                  <v-chip size="x-small" color="neutral" variant="flat" class="ml-1">{{ notSubmittedCount(item.id) }} not submitted</v-chip>
-                </v-expansion-panel-title>
-                <v-expansion-panel-text><SubmissionPanel :item-id="item.id" teacher :preloaded-submissions="assignmentSubmissions[item.id] ?? []" @deleted="refreshAssignmentSubmissions" /></v-expansion-panel-text>
-              </v-expansion-panel>
-            </v-expansion-panels>
-          </section>
+          <v-expansion-panels v-model="expandedSubmissionModules" multiple>
+            <v-expansion-panel v-for="group in assignmentsByModule" :key="group.module?.id ?? 'unplaced'" :value="group.module?.id ?? 'unplaced'">
+              <v-expansion-panel-title>{{ group.module ? group.module.title : 'Not in a module' }}</v-expansion-panel-title>
+              <v-expansion-panel-text>
+                <v-expansion-panels multiple>
+                  <v-expansion-panel v-for="item in group.items" :key="item.id">
+                    <v-expansion-panel-title>
+                      {{ item.title }}
+                      <v-chip size="x-small" color="success" variant="flat" class="ml-2">{{ submittedCount(item.id) }} submitted</v-chip>
+                      <v-chip size="x-small" color="neutral" variant="flat" class="ml-1">{{ notSubmittedCount(item.id) }} not submitted</v-chip>
+                    </v-expansion-panel-title>
+                    <v-expansion-panel-text><SubmissionPanel :item-id="item.id" teacher :preloaded-submissions="assignmentSubmissions[item.id] ?? []" @deleted="refreshAssignmentSubmissions" /></v-expansion-panel-text>
+                  </v-expansion-panel>
+                </v-expansion-panels>
+              </v-expansion-panel-text>
+            </v-expansion-panel>
+          </v-expansion-panels>
         </template>
       </v-window-item>
       <v-window-item value="release">
