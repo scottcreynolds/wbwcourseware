@@ -782,7 +782,7 @@ onMounted(load)
   <v-dialog v-model="previewDialog" max-width="64rem" height="90vh" scrollable>
     <v-card v-if="previewContent" :title="previewContent.title">
       <v-card-text>
-        <MarkdownContent :source="previewContent.markdown" />
+        <MarkdownContent :source="previewContent.markdown" open-links-in-new-tab />
       </v-card-text>
       <v-card-actions>
         <v-spacer />

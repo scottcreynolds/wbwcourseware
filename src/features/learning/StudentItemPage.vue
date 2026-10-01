@@ -43,7 +43,7 @@ function printPage(){window.print()}
     </nav>
     <p class="eyebrow">{{ item.kind }}</p><h2 class="document-title">{{ item.title }}</h2>
     <p v-if="item.dueAt" class="due-date">Due {{ formatCourseDate(item.dueAt,outline.course.timezone) }}</p>
-    <MarkdownContent :source="item.bodyMarkdown" />
+    <MarkdownContent :source="item.bodyMarkdown" open-links-in-new-tab />
     <section v-if="resources.length" class="resource-section" aria-labelledby="resources-title"><h3 id="resources-title">Resources</h3><ol><li v-for="resource in resources" :key="resource.id"><a :href="resource.url" target="_blank" rel="noopener noreferrer">{{ resource.title }}</a><span class="print-url"> — {{ resource.url }}</span><p v-if="resource.description">{{ resource.description }}</p></li></ol></section>
     <SubmissionPanel v-if="item.kind === 'assignment' && !printView" :item-id="item.id" can-submit />
     <div v-if="printView" class="screen-only print-actions"><v-btn color="primary" prepend-icon="mdi-printer" @click="printPage">Open print / save as PDF</v-btn></div>

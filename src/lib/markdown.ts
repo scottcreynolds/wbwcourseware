@@ -4,7 +4,11 @@ import MarkdownIt from 'markdown-it'
 const markdown = new MarkdownIt({ html: true, linkify: true, typographer: true })
 const iframeHosts = new Set(['www.youtube.com', 'www.youtube-nocookie.com', 'player.vimeo.com'])
 
-export function renderMarkdown(source: string): string {
+export interface RenderMarkdownOptions {
+  openLinksInNewTab?: boolean
+}
+
+export function renderMarkdown(source: string, { openLinksInNewTab = false }: RenderMarkdownOptions = {}): string {
   const rendered = markdown.render(source)
   const sanitized = DOMPurify.sanitize(rendered, {
     ADD_TAGS: ['iframe'],
@@ -42,6 +46,8 @@ export function renderMarkdown(source: string): string {
   })
   document.querySelectorAll('a').forEach((link) => {
     link.setAttribute('rel', 'noopener noreferrer')
+    const isInPageAnchor = (link.getAttribute('href') ?? '').startsWith('#')
+    if (openLinksInNewTab && !isInPageAnchor) link.setAttribute('target', '_blank')
   })
   document.querySelectorAll<HTMLElement>('[style]').forEach((element) => {
     const style = element.getAttribute('style') ?? ''

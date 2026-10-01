@@ -2,8 +2,8 @@
 import { computed } from 'vue'
 import { renderMarkdown } from '@/lib/markdown'
 
-const props = defineProps<{ source: string }>()
-const html = computed(() => renderMarkdown(props.source))
+const props = defineProps<{ source: string; openLinksInNewTab?: boolean }>()
+const html = computed(() => renderMarkdown(props.source, { openLinksInNewTab: props.openLinksInNewTab }))
 </script>
 
 <template>

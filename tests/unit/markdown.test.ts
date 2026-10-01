@@ -15,5 +15,27 @@ describe('renderMarkdown', () => {
     )
     expect(renderMarkdown('<iframe src="https://evil.example/embed/abc"></iframe>')).not.toContain('<iframe')
   })
+
+  it('opens links in a new tab only when requested, leaving in-page anchors alone', () => {
+    const source = '[site](https://example.com) [jump](#notes)'
+    const linkTargets = (html: string) =>
+      [...new DOMParser().parseFromString(html, 'text/html').querySelectorAll('a')].map((link) => ({
+        target: link.getAttribute('target'),
+        rel: link.getAttribute('rel'),
+      }))
+
+    expect(linkTargets(renderMarkdown(source))).toEqual([
+      { target: null, rel: 'noopener noreferrer' },
+      { target: null, rel: 'noopener noreferrer' },
+    ])
+    expect(linkTargets(renderMarkdown(source, { openLinksInNewTab: true }))).toEqual([
+      { target: '_blank', rel: 'noopener noreferrer' },
+      { target: null, rel: 'noopener noreferrer' },
+    ])
+  })
+
+  it('does not let authored target attributes survive sanitization', () => {
+    expect(renderMarkdown('<a href="https://example.com" target="_blank">x</a>')).not.toContain('target=')
+  })
 })
 

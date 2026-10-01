@@ -40,6 +40,8 @@ Use placement join tables. Do not copy item content merely to display it in a re
 - Remove scripts, event handlers, forms, active embeds, dangerous protocols, and unapproved iframe hosts.
 - Initial iframe allowlist: YouTube and Vimeo; configure centrally.
 - External links use safe `rel` values.
+- Links in lecture and assignment bodies open in a new tab; in-page `#` anchors do not. Authored
+  `target` attributes are stripped, so this is renderer-controlled only.
 - Renderer output never becomes trusted because author is teacher.
 
 ## Outline import
