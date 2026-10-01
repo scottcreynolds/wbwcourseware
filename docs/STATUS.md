@@ -82,15 +82,27 @@ M9: Hardening and Deployment Readiness — implementation complete
   Import outline, matching the import grammar exactly for round-tripping
 - Submission deletion: a student may delete their own submission and a
   teacher may delete any submission for a course they own, removing every
-  version, file, and the underlying storage object for all viewers
+  version, file, and the underlying storage object for all viewers; any
+  teacher notification for the deleted submission is cancelled with it
+- Service-role-only RPC and `pnpm provision:notify-vault` operator script for
+  seeding the Vault secrets teacher notifications depend on
+- Course editor Submissions tab grouped by module in collapsible panels (open
+  state persisted per course), each assignment split into submitted and
+  not-submitted rows
+- Curriculum item editor "Save & close" returns to the Modules tab on success
+- Late submission chip reads "It's Fine" (intentional)
 
 ## Verification
+
+Last run 2026-10-01 except where noted.
+
 
 - `pnpm typecheck`: pass
 - `pnpm lint`: pass
 - `pnpm test`: pass — 27 tests
 - `pnpm build`: pass
-- `pnpm test:db`: pass — 113 assertions
+- `pnpm test:db`: 114 planned assertions; last full run passed at 113 before
+  `4d8ab0b` added one — rerun pending
 - `pnpm test:functions`: pass — 14 live boundary tests
 - `pnpm test:e2e`: pass — 9 public Chromium checks plus an authenticated local-staging teacher journey (1 skipped)
 

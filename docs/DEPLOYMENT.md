@@ -38,6 +38,8 @@ local Supabase/Vite stack; managed Supabase, Vercel, and Resend checks remain pr
   Supabase injects those runtime variables into Edge Functions.
 - Confirm Supabase Auth site URL and redirect allowlist match the canonical HTTPS origin.
 - Confirm public signup remains disabled and bootstrap the first teacher once.
+- Provision the teacher-notification Vault secrets with `pnpm provision:notify-vault` (see
+  `docs/EMAIL.md`). Without them, notifications silently stay pending.
 
 ## Environment variable ownership
 

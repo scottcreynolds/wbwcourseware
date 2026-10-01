@@ -1,12 +1,13 @@
 # Deployment Readiness
 
-Last reviewed: 2026-09-15
+Last reviewed: 2026-10-01
 
 ## Completed locally
 
-- `pnpm verify`: typecheck, lint, 25 unit tests, and production build pass.
-- `pnpm test:db`: 106 database/RLS assertions pass against an isolated local Supabase stack.
-- `pnpm test:functions`: 13 live Edge Function boundary assertions pass against local Supabase.
+- `pnpm verify`: typecheck, lint, 27 unit tests, and production build pass (2026-10-01).
+- `pnpm test:db`: 113 database/RLS assertions passed against an isolated local Supabase stack
+  (2026-09-19); the suite now plans 114 and needs a rerun.
+- `pnpm test:functions`: 14 live Edge Function boundary assertions pass against local Supabase (2026-09-19).
 - `pnpm test:e2e`: 9 public Chromium checks pass, plus an authenticated local-staging teacher journey
   (1 related check intentionally skipped).
 - Authenticated local-staging journey passes for teacher login, course creation, outline import, cohort
@@ -19,7 +20,7 @@ Last reviewed: 2026-09-15
 - Local database backup/restore rehearsal (last performed 2026-09-04, against 70 assertions at the time)
   passes with Auth and application data restored, record counts verified, and the full database/RLS suite
   rerun. Storage metadata is intentionally excluded from the database dump and handled by the separate
-  private-object export path. Rerun against the current 106-assertion suite before relying on this gate
+  private-object export path. Rerun against the current 114-assertion suite before relying on this gate
   for launch.
 
 ## Local staging policy
