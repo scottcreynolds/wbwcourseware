@@ -184,7 +184,9 @@ function itemsFor(moduleId: string): CourseItem[] {
 
 function linkableItems(moduleId: string): CourseItem[] {
   const present = new Set(itemsFor(moduleId).map((item) => item.id))
-  return workspace.value?.items.filter((item) => !present.has(item.id)) ?? []
+  return (workspace.value?.items.filter((item) => !present.has(item.id)) ?? []).sort((a, b) =>
+    a.title.localeCompare(b.title, undefined, { sensitivity: 'base', numeric: true }),
+  )
 }
 
 function placementCount(itemId: string): number {
@@ -789,7 +791,7 @@ onMounted(load)
   <v-dialog v-model="moduleDialog" max-width="32rem"><v-card title="Add module"><v-card-text><v-text-field v-model="moduleTitle" label="Module title" /></v-card-text><v-card-actions><v-spacer /><v-btn @click="moduleDialog = false">Cancel</v-btn><v-btn color="primary" :disabled="!moduleTitle.trim()" @click="addModule">Add</v-btn></v-card-actions></v-card></v-dialog>
   <v-dialog v-model="editModuleDialog" max-width="32rem"><v-card title="Rename module"><v-card-text><v-text-field v-model="editingModuleTitle" label="Module title" /></v-card-text><v-card-actions><v-spacer /><v-btn @click="editModuleDialog = false">Cancel</v-btn><v-btn color="primary" :disabled="!editingModuleTitle.trim()" @click="updateModule">Save</v-btn></v-card-actions></v-card></v-dialog>
   <v-dialog v-model="itemDialog" max-width="32rem"><v-card title="Add curriculum item"><v-card-text><v-select v-model="itemKind" label="Type" :items="['lecture', 'assignment']" /><v-text-field v-model="itemTitle" label="Title" /></v-card-text><v-card-actions><v-spacer /><v-btn @click="itemDialog = false">Cancel</v-btn><v-btn color="primary" :disabled="!itemTitle.trim()" @click="addItem">Create and edit</v-btn></v-card-actions></v-card></v-dialog>
-  <v-dialog v-model="linkDialog" max-width="36rem"><v-card title="Link existing item"><v-card-text><v-select v-model="linkItemId" label="Curriculum item" :items="linkableItems(linkModuleId)" item-title="title" item-value="id" /></v-card-text><v-card-actions><v-spacer /><v-btn @click="linkDialog = false">Cancel</v-btn><v-btn color="primary" :disabled="!linkItemId" @click="linkItem">Link</v-btn></v-card-actions></v-card></v-dialog>
+  <v-dialog v-model="linkDialog" max-width="36rem"><v-card title="Link existing item"><v-card-text><v-autocomplete v-model="linkItemId" label="Curriculum item" :items="linkableItems(linkModuleId)" item-title="title" item-value="id" no-data-text="No matching items" autofocus /></v-card-text><v-card-actions><v-spacer /><v-btn @click="linkDialog = false">Cancel</v-btn><v-btn color="primary" :disabled="!linkItemId" @click="linkItem">Link</v-btn></v-card-actions></v-card></v-dialog>
   <v-dialog v-model="moveDialog" max-width="36rem"><v-card title="Move to module"><v-card-text><v-select v-model="moveTargetModuleId" label="Target module" :items="moveTargetOptions(moveItemId)" item-title="title" item-value="id" /></v-card-text><v-card-actions><v-spacer /><v-btn @click="moveDialog = false">Cancel</v-btn><v-btn color="primary" :disabled="!moveTargetModuleId" :loading="saving" @click="moveItemToModule">Move</v-btn></v-card-actions></v-card></v-dialog>
   <v-dialog v-model="previewDialog" max-width="64rem" height="90vh" scrollable>
     <v-card v-if="previewContent" :title="previewContent.title">
