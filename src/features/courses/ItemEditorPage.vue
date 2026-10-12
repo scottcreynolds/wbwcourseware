@@ -63,7 +63,7 @@ async function deleteItem(): Promise<void> {
   if (!item.value || !window.confirm(`Delete “${item.value.title}” from every module?`)) return
   try {
     await courseService.deleteItem(itemId)
-    await router.push(`/teacher/courses/${courseId}`)
+    await router.push(`/teacher/courses/${courseId}?tab=modules`)
   } catch {
     errorMessage.value = 'Curriculum item could not be deleted.'
   }
