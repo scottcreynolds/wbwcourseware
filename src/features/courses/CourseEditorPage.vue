@@ -10,6 +10,7 @@ import { parseCourseOutline, serializeCourseOutline } from '@/features/courses/o
 import { slugify } from '@/features/courses/slug'
 import { enrollmentService } from '@/features/enrollment/enrollmentService'
 import { submissionService } from '@/features/submissions/submissionService'
+import { groupAssignmentsForReview } from '@/features/submissions/submissionReviewGroups'
 import type { CourseEnrollment, CourseInvitation } from '@/types/enrollment'
 import type { CourseItem, CourseModule, CourseStatus, CourseWorkspace, CurriculumItemKind } from '@/types/course'
 import type { AssignmentSubmission } from '@/types/submission'
@@ -102,21 +103,21 @@ watch(expandedModules, (ids) => {
   }
 }, { deep: true })
 
-const expandedSubmissionModulesKey = `course-editor:${courseId}:expanded-submission-modules`
-function readExpandedSubmissionModules(): string[] {
+const expandedSubmissionGroupsKey = `course-editor:${courseId}:expanded-submission-groups`
+function readExpandedSubmissionGroups(): string[] {
   try {
-    const stored = localStorage.getItem(expandedSubmissionModulesKey)
-    if (!stored) return []
+    const stored = localStorage.getItem(expandedSubmissionGroupsKey)
+    if (!stored) return ['recent']
     const parsed: unknown = JSON.parse(stored)
-    return Array.isArray(parsed) ? parsed.filter((value): value is string => typeof value === 'string') : []
+    return Array.isArray(parsed) ? parsed.filter((value): value is string => typeof value === 'string') : ['recent']
   } catch {
-    return []
+    return ['recent']
   }
 }
-const expandedSubmissionModules = ref<string[]>(readExpandedSubmissionModules())
-watch(expandedSubmissionModules, (ids) => {
+const expandedSubmissionGroups = ref<string[]>(readExpandedSubmissionGroups())
+watch(expandedSubmissionGroups, (keys) => {
   try {
-    localStorage.setItem(expandedSubmissionModulesKey, JSON.stringify(ids))
+    localStorage.setItem(expandedSubmissionGroupsKey, JSON.stringify(keys))
   } catch {
     // ignore write failures, expansion state still applies for this session
   }
@@ -126,16 +127,20 @@ const assignments = computed(() => workspace.value?.items.filter((item) => item.
 const assignmentSubmissions = ref<Record<string, AssignmentSubmission[]>>({})
 const assignmentSubmissionsLoading = ref(false)
 
-const assignmentsByModule = computed(() => {
-  if (!workspace.value) return []
-  const ordered = [...workspace.value.modules].sort((a, b) => a.position - b.position)
-  const groups = ordered
-    .map((module) => ({ module, items: itemsFor(module.id).filter((item) => item.kind === 'assignment') }))
-    .filter((group) => group.items.length > 0)
-  const placedIds = new Set(groups.flatMap((group) => group.items.map((item) => item.id)))
-  const unplaced = assignments.value.filter((item) => !placedIds.has(item.id))
-  return unplaced.length > 0 ? [...groups, { module: null, items: unplaced }] : groups
-})
+const submissionReviewNow = ref(new Date())
+const submissionReviewGroups = computed(() =>
+  workspace.value ? groupAssignmentsForReview(assignments.value, submissionReviewNow.value, workspace.value.course.timezone) : [],
+)
+
+function moduleTitlesFor(itemId: string): string {
+  if (!workspace.value) return ''
+  const moduleIds = new Set(workspace.value.placements.filter((placement) => placement.item_id === itemId).map((placement) => placement.module_id))
+  return [...workspace.value.modules]
+    .sort((a, b) => a.position - b.position)
+    .filter((module) => moduleIds.has(module.id))
+    .map((module) => module.title)
+    .join(', ')
+}
 
 function submittedCount(itemId: string): number {
   return (assignmentSubmissions.value[itemId] ?? []).filter((submission) => submission.versions.length > 0).length
@@ -151,6 +156,7 @@ async function refreshAssignmentSubmissions(): Promise<void> {
     return
   }
   assignmentSubmissionsLoading.value = true
+  submissionReviewNow.value = new Date()
   try {
     const entries = await Promise.all(
       assignments.value.map(async (item) => [item.id, await submissionService.list(item.id)] as const),
@@ -689,16 +695,22 @@ onMounted(load)
         <v-empty-state v-if="assignments.length === 0" headline="No assignments yet" text="Add an assignment item in Modules to review submissions." />
         <v-skeleton-loader v-else-if="assignmentSubmissionsLoading" type="list-item-three-line@2" />
         <template v-else>
-          <v-expansion-panels v-model="expandedSubmissionModules" multiple>
-            <v-expansion-panel v-for="group in assignmentsByModule" :key="group.module?.id ?? 'unplaced'" :value="group.module?.id ?? 'unplaced'">
-              <v-expansion-panel-title>{{ group.module ? group.module.title : 'Not in a module' }}</v-expansion-panel-title>
+          <v-expansion-panels v-model="expandedSubmissionGroups" multiple>
+            <v-expansion-panel v-for="group in submissionReviewGroups" :key="group.key" :value="group.key">
+              <v-expansion-panel-title>{{ group.label }} ({{ group.items.length }})</v-expansion-panel-title>
               <v-expansion-panel-text>
                 <v-expansion-panels multiple>
                   <v-expansion-panel v-for="item in group.items" :key="item.id">
                     <v-expansion-panel-title>
-                      {{ item.title }}
-                      <v-chip size="x-small" color="success" variant="flat" class="ml-2">{{ submittedCount(item.id) }} submitted</v-chip>
-                      <v-chip size="x-small" color="neutral" variant="flat" class="ml-1">{{ notSubmittedCount(item.id) }} not submitted</v-chip>
+                      <div>
+                        <div>
+                          {{ item.title }}
+                          <v-chip v-if="item.due_at && workspace" size="x-small" variant="tonal" class="ml-2">Due {{ formatCourseDate(item.due_at, workspace.course.timezone) }}</v-chip>
+                          <v-chip size="x-small" color="success" variant="flat" class="ml-1">{{ submittedCount(item.id) }} submitted</v-chip>
+                          <v-chip size="x-small" color="neutral" variant="flat" class="ml-1">{{ notSubmittedCount(item.id) }} not submitted</v-chip>
+                        </div>
+                        <div class="text-caption text-medium-emphasis">{{ moduleTitlesFor(item.id) || 'Not in a module' }}</div>
+                      </div>
                     </v-expansion-panel-title>
                     <v-expansion-panel-text><SubmissionPanel :item-id="item.id" teacher :preloaded-submissions="assignmentSubmissions[item.id] ?? []" @deleted="refreshAssignmentSubmissions" /></v-expansion-panel-text>
                   </v-expansion-panel>

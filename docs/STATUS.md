@@ -86,9 +86,11 @@ M9: Hardening and Deployment Readiness — implementation complete
   teacher notification for the deleted submission is cancelled with it
 - Service-role-only RPC and `pnpm provision:notify-vault` operator script for
   seeding the Vault secrets teacher notifications depend on
-- Course editor Submissions tab grouped by module in collapsible panels (open
-  state persisted per course), each assignment split into submitted and
-  not-submitted rows
+- Course editor Submissions tab grouped by due date in collapsible panels
+  (open state persisted per course): most recently due (the cohort-local
+  day of the latest past due date, open by default), upcoming (soonest
+  first), earlier (newest first), and no due date; each assignment shows
+  its module(s) and is split into submitted and not-submitted rows
 - Curriculum item editor "Save & close" returns to the Modules tab on success
 - Late submission chip reads "It's Fine" (intentional)
 
