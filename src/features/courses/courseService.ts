@@ -109,6 +109,7 @@ export const courseService = {
   },
   async deleteModule(moduleId: string): Promise<void> {
     const { error } = await supabase.rpc('delete_course_module', { target_module_id: moduleId })
+    if (error?.message.includes('student submissions')) throw new Error('This module has assignments with student submissions. Delete those submissions or move the assignments to another module first.')
     if (error) throw error
   },
   async reorderModules(courseId: string, orderedIds: string[]): Promise<void> {
@@ -190,6 +191,7 @@ export const courseService = {
   },
   async deleteItem(itemId: string): Promise<void> {
     const { error } = await supabase.from('course_items').delete().eq('id', itemId)
+    if (error?.code === '23503') throw new Error('This assignment has student submissions. Delete those submissions before deleting it.')
     if (error) throw error
   },
   async addResource(itemId: string, title: string, url: string, position: number): Promise<void> {

@@ -64,8 +64,8 @@ async function deleteItem(): Promise<void> {
   try {
     await courseService.deleteItem(itemId)
     await router.push(`/teacher/courses/${courseId}?tab=modules`)
-  } catch {
-    errorMessage.value = 'Curriculum item could not be deleted.'
+  } catch (error) {
+    errorMessage.value = error instanceof Error ? error.message : 'Curriculum item could not be deleted.'
   }
 }
 

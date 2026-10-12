@@ -92,6 +92,10 @@ M9: Hardening and Deployment Readiness — implementation complete
   first), earlier (newest first), and no due date; each assignment shows
   its module(s) and is split into submitted and not-submitted rows
 - Curriculum item editor "Save & close" returns to the Modules tab on success
+- Module delete no longer requires emptying the module first: items placed
+  only in that module are deleted with it (listed in the confirmation),
+  shared items keep their other placements, and assignments with student
+  submissions block the delete. Each Modules-tab item row has a delete action
 - Late submission chip reads "It's Fine" (intentional)
 
 ## Verification

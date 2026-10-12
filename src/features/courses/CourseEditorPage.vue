@@ -297,8 +297,19 @@ async function updateModule(): Promise<void> {
 }
 
 async function deleteModule(module: CourseModule): Promise<void> {
-  if (!window.confirm(`Delete module "${module.title}"?`)) return
+  const doomedTitles = moduleOnlyItems(module.id).map((item) => `• ${item.title}`)
+  const message = doomedTitles.length
+    ? `Delete module "${module.title}"?\n\nThese items exist only in this module and will be permanently deleted:\n${doomedTitles.join('\n')}`
+    : `Delete module "${module.title}"?`
+  if (!window.confirm(message)) return
   await run(() => courseService.deleteModule(module.id), 'Module deleted.')
+}
+
+async function deleteItemEverywhere(item: CourseItem): Promise<void> {
+  const otherModuleCount = placementCount(item.id) - 1
+  const scope = otherModuleCount > 0 ? ` It will also be removed from ${otherModuleCount} other module${otherModuleCount === 1 ? '' : 's'}.` : ''
+  if (!window.confirm(`Permanently delete "${item.title}"?${scope}`)) return
+  await run(() => courseService.deleteItem(item.id), 'Item deleted.')
 }
 
 async function moveModule(module: CourseModule, direction: -1 | 1): Promise<void> {
@@ -651,9 +662,7 @@ onMounted(load)
                 <v-tooltip :text="isModuleReleased(module) ? 'Lock this module from students' : 'Release this module to students now'">
                   <template #activator="{ props: tooltipProps }"><v-btn v-bind="tooltipProps" size="small" color="secondary" variant="tonal" :loading="saving" @click="toggleModuleRelease(module)">{{ isModuleReleased(module) ? 'Lock module' : 'Release module' }}</v-btn></template>
                 </v-tooltip>
-                <v-tooltip :text="moduleOnlyItems(module.id).length ? `Move or delete first: ${moduleOnlyItems(module.id).map(item => item.title).join(', ')}` : 'Delete module'">
-                  <template #activator="{ props: tooltipProps }"><v-btn v-bind="tooltipProps" size="small" color="error" variant="text" :disabled="moduleOnlyItems(module.id).length > 0" @click="deleteModule(module)">Delete module</v-btn></template>
-                </v-tooltip>
+                <v-btn size="small" color="error" variant="text" :disabled="saving" @click="deleteModule(module)">Delete module</v-btn>
               </div>
               <v-list v-if="itemsFor(module.id).length" :ref="(el: Element | ComponentPublicInstance | null) => registerItemsList(module.id, el)">
                 <v-list-item v-for="(item, itemIndex) in itemsFor(module.id)" :key="item.id" :title="item.title">
@@ -682,6 +691,9 @@ onMounted(load)
                       </v-tooltip>
                       <v-tooltip :text="placementCount(item.id) > 1 ? 'Remove from module' : 'Item must remain in at least one module'">
                         <template #activator="{ props: tooltipProps }"><v-btn v-bind="tooltipProps" icon="mdi-link-off" size="small" variant="text" :disabled="placementCount(item.id) <= 1" aria-label="Remove from module" @click="removePlacement(module.id, item.id)" /></template>
+                      </v-tooltip>
+                      <v-tooltip text="Delete item">
+                        <template #activator="{ props: tooltipProps }"><v-btn v-bind="tooltipProps" icon="mdi-delete-outline" size="small" variant="text" color="error" :disabled="saving" :aria-label="`Delete ${item.title}`" @click="deleteItemEverywhere(item)" /></template>
                       </v-tooltip>
                     </div>
                   </template>
