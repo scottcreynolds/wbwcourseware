@@ -3,6 +3,7 @@ import { computed, onBeforeUnmount, onMounted, ref, watch, type ComponentPublicI
 import { useRoute, useRouter } from 'vue-router'
 import { useDraggable, type DraggableEvent } from 'vue-draggable-plus'
 import { pageTitleOverride } from '@/app/pageTitle'
+import { buildCourseExport, courseExportFileName } from '@/features/courses/courseExport'
 import { courseService } from '@/features/courses/courseService'
 import { datetimeLocalToIso, defaultDueDatetimeLocal, isoToDatetimeLocal } from '@/features/courses/datetimeLocal'
 import { formatCourseDate } from '@/features/learning/dateFormat'
@@ -18,6 +19,7 @@ import AnnouncementList from '@/features/announcements/AnnouncementList.vue'
 import DiscussionBoard from '@/features/discussions/DiscussionBoard.vue'
 import SubmissionPanel from '@/features/submissions/SubmissionPanel.vue'
 import MarkdownContent from '@/shared/MarkdownContent.vue'
+import { createZip } from '@/lib/zip'
 
 const route = useRoute()
 const router = useRouter()
@@ -71,6 +73,7 @@ const exportOutlineSource = computed(() => {
     })),
   )
 })
+const exportingCourse = ref(false)
 const duplicateDialog = ref(false)
 const duplicateTitle = ref('')
 
@@ -537,6 +540,27 @@ async function duplicateCourse(): Promise<void> {
   if (newId) await router.push(`/teacher/courses/${newId}`)
 }
 
+async function exportCourse(): Promise<void> {
+  if (!workspace.value) return
+  exportingCourse.value = true
+  errorMessage.value = null
+  try {
+    const archive = createZip(buildCourseExport(await courseService.loadCourseExport(courseId)))
+    const url = URL.createObjectURL(new Blob([archive], { type: 'application/zip' }))
+    const link = document.createElement('a')
+    link.href = url
+    link.download = courseExportFileName(workspace.value.course.title)
+    link.click()
+    // Deferred so Safari has started the download before the URL disappears.
+    setTimeout(() => URL.revokeObjectURL(url), 0)
+    notice.value = 'Course exported.'
+  } catch {
+    errorMessage.value = 'Course could not be exported.'
+  } finally {
+    exportingCourse.value = false
+  }
+}
+
 async function sendInvite(email: string): Promise<void> {
   try {
     const result = await enrollmentService.invite(courseId, email)
@@ -624,6 +648,7 @@ onMounted(load)
           <v-card-actions>
             <v-btn color="primary" :loading="saving" @click="saveCourse">Save course</v-btn>
             <v-spacer />
+            <v-btn variant="outlined" prepend-icon="mdi-folder-zip-outline" :loading="exportingCourse" @click="exportCourse">Export course</v-btn>
             <v-btn variant="outlined" prepend-icon="mdi-content-copy" @click="duplicateDialog = true">Duplicate course</v-btn>
           </v-card-actions>
         </v-card>

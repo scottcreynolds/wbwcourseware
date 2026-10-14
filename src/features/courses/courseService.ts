@@ -1,3 +1,4 @@
+import type { CourseExportModuleNotes, CourseExportResource, CourseExportSource } from '@/features/courses/courseExport'
 import { supabase } from '@/lib/supabase'
 import type {
   Course,
@@ -69,6 +70,26 @@ export const courseService = {
       placements: (placementsResult.data as ModuleItemPlacement[]).filter((placement) =>
         moduleIds.has(placement.module_id),
       ),
+    }
+  },
+  async loadCourseExport(courseId: string): Promise<CourseExportSource> {
+    const [workspace, resourcesResult, notesResult] = await Promise.all([
+      courseService.loadWorkspace(courseId),
+      supabase
+        .from('course_item_resources')
+        .select('item_id, title, url, description, position, course_items!inner(course_id)')
+        .eq('course_items.course_id', courseId),
+      supabase
+        .from('course_module_notes')
+        .select('module_id, notes_markdown, course_modules!inner(course_id)')
+        .eq('course_modules.course_id', courseId),
+    ])
+    if (resourcesResult.error) throw resourcesResult.error
+    if (notesResult.error) throw notesResult.error
+    return {
+      workspace,
+      resources: resourcesResult.data as unknown as CourseExportResource[],
+      moduleNotes: notesResult.data as unknown as CourseExportModuleNotes[],
     }
   },
   async updateCourse(
